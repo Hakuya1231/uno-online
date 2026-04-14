@@ -29,9 +29,27 @@
 | name | string | 昵称（随机生成，可修改） |
 | isAI | boolean | 是否为 AI 玩家 |
 
-## 牌局/房间（Game）
+## Firestore 数据结构
 
-### 属性
+```
+rooms (集合)
+  └── {roomId} (文档 - 公开信息，所有玩家可读)
+        ├── 房间/牌局公开字段...
+        │
+        ├── private (子集合)
+        │     └── gameData (文档 - 仅服务端可读写)
+        │           └── drawPile: Card[]
+        │
+        └── hands (子集合)
+              ├── {playerId} (文档 - 仅对应玩家可读)
+              │     └── cards: Card[]
+              ├── {playerId} ...
+              └── ...
+```
+
+### 房间文档 `rooms/{roomId}`（公开信息）
+
+所有玩家通过 onSnapshot 订阅，可见全部字段。
 
 | 字段 | 类型 | 说明 |
 |------|------|------|
@@ -39,20 +57,33 @@
 | hostId | string | 房主玩家 ID |
 | dealerMode | `"host" \| "draw_compare"` | 庄家选择方式（房主当庄家 / 摸牌比大小） |
 | dealerId | string | 庄家玩家 ID |
-| status | `"waiting" \| "choosing_dealer" \| "dealing" \| "playing" \| "paused" \| "finished"` | 房间状态（等待中 / 选庄中 / 等待发牌 / 对战中 / 暂停 / 结束） |
+| status | `"waiting" \| "choosing_dealer" \| "dealing" \| "playing" \| "paused" \| "finished"` | 房间状态 |
 | players | Player[] | 玩家列表（按加入时间排序，房主第一，AI 排最后） |
-| drawPile | Card[] | 摸牌堆 |
 | discardPile | Card[] | 弃牌堆 |
 | chosenColor | `"red" \| "yellow" \| "green" \| "blue" \| null` | 万能牌出牌后指定的颜色，非万能牌时为 null |
 | currentPlayerIndex | number | 当前出牌人在玩家列表中的索引 |
 | direction | `1 \| -1` | 出牌方向（1 顺时针，-1 逆时针） |
 | pendingDraw | number | 叠加累计摸牌数（+2/+4 叠加时累积，默认 0） |
-| hands | Map\<playerId, Card[]\> | 各玩家手牌 |
+| drawPileCount | number | 摸牌堆剩余张数（不暴露具体牌） |
+| handCounts | Map\<playerId, number\> | 各玩家手牌数量（不暴露内容） |
 | scores | Map\<playerId, number\> | 各玩家累计得分 |
 | currentRound | number | 当前局数 |
 | disconnectedPlayerId | string \| null | 断线玩家 ID，无断线时为 null |
-| pauseUntil | number \| null | 暂停截止时间戳（毫秒），客户端用 pauseUntil - now 算剩余秒数 |
+| pauseUntil | number \| null | 暂停截止时间戳（毫秒） |
 
-### 方法
+### 私密文档 `rooms/{roomId}/private/gameData`（仅服务端）
 
-见 [client-methods.md](client-methods.md)（客户端方法）。
+仅服务端通过 Admin SDK 读写，客户端无权访问。
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| drawPile | Card[] | 摸牌堆具体内容 |
+
+### 手牌文档 `rooms/{roomId}/hands/{playerId}`（仅对应玩家可读）
+
+每个玩家只能读自己的手牌文档。
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| cards | Card[] | 该玩家的手牌列表 |
+
