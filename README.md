@@ -37,3 +37,4 @@
 - [页面结构与组件](docs/pages.md)
 - [AI 玩家逻辑](docs/ai-logic.md)
 - [断线与重连](docs/disconnect.md)
+- [安全规则与约束说明](docs/security-and-rules.md)
