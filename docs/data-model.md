@@ -69,6 +69,7 @@ rooms (集合)
 | handCounts | Map\<playerId, number\> | 各玩家手牌数量（不暴露内容） |
 | scores | Map\<playerId, number\> | 各玩家累计得分 |
 | currentRound | number | 当前局数 |
+| lastAction | object \| null | 最近一次操作，如 `{ playerId, action, card?, count?, result? }` |
 | disconnectedPlayerId | string \| null | 断线玩家 ID，无断线时为 null |
 | pauseUntil | number \| null | 暂停截止时间戳（毫秒） |
 

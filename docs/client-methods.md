@@ -54,6 +54,7 @@
 - 各玩家手牌数量（不暴露内容）
 - scores（各玩家累计得分）
 - currentRound（当前局数）
+- lastAction（最近一次操作，用于显示提示文字）
 - disconnectedPlayerId（断线玩家 ID）
 - pauseUntil（暂停截止时间戳，客户端用 pauseUntil - now 算剩余秒数）
 
