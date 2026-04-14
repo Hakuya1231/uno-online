@@ -56,3 +56,36 @@ Presence 只用于在线状态：
 1. **并发控制**：两个请求几乎同时到达（比如双击按钮/网络重试/多端同时点击），可在 transaction 中校验“读到的 version 必须仍然是最新”，否则拒绝或重试，避免状态回退/覆盖。
 2. **幂等与去重**：配合 `lastAction` 或 `requestId`（可选），可让服务端识别“同一动作被重复提交”，直接返回成功而不重复扣牌/重复摸牌。
 
+## 五、各接口 Transaction 要求
+
+本项目默认策略：
+
+- **凡是会改动房间关键状态/手牌/牌堆的接口，一律使用 Firestore Transaction**，把“读取 → 校验 → 写入”放在同一个 transaction 中。
+- 在 transaction 中更新 `rooms/{roomId}` 时，统一做 `roomVersion = roomVersion + 1`（客户端不需要传 `roomVersion`）。
+
+### 房间级
+
+- **创建房间 `/api/room`**：不需要（单次创建写入，不存在并发覆盖问题）
+- **加入房间 `/api/room/join`**：需要（会并发抢位/重复加入，需要原子校验人数与状态）
+- **添加 AI `/api/room/ai`**：需要（会并发超人数/重复添加，需要原子校验总人数）
+- **移除 AI `/api/room/ai`（DELETE）**：需要（避免并发移除/状态变化导致列表覆盖）
+- **开始游戏 `/api/room/start`**：需要（状态从 waiting→下一阶段，需要原子切换并初始化选庄/发牌前置数据）
+
+### 牌局级
+
+- **选庄摸牌 `/api/game/draw-for-dealer`**：需要（抽牌与写入结果必须原子，防重复抽/多人同时抽导致结果错乱）
+- **庄家发牌 `/api/game/deal`**：需要（会写大量关键状态与多玩家手牌，必须保持一致）
+- **出牌 `/api/game/play-card`**：需要（同时改手牌、弃牌堆、轮转、pendingDraw 等，必须原子）
+- **摸牌 `/api/game/draw-card`**：需要（同时改牌堆与手牌，并设置 hasDrawnThisTurn，必须原子）
+- **跳过 `/api/game/skip`**：需要（依赖 hasDrawnThisTurn 校验与轮转，避免并发覆盖）
+- **接受 `/api/game/accept`**：需要（同时清 pendingDraw、从牌堆补牌、轮转，必须原子）
+- **质疑 `/api/game/challenge`**：需要（会同时改多方手牌/牌堆/弃牌堆/轮转，必须原子）
+- **开始下一局 `/api/game/next-round`**：需要（会重置房间与手牌/牌堆，必须一致）
+- **结束游戏 `/api/game/end`**：建议（采用“归档”写入即可：标记 status=ended/archived=true；避免删除带来的误删/半删风险）
+
+### 断线相关
+
+- **暂停 `/api/game/pause`**：需要（幂等；多人同时触发暂停时避免互相覆盖）
+- **重连 `/api/game/reconnect`**：需要（从 paused→playing 的状态切换必须原子）
+- **超时 `/api/game/timeout`**：需要（幂等；从 paused→finished 的状态切换必须原子）
+
