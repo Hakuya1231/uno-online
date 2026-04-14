@@ -33,4 +33,6 @@
 - [用户操作流程](docs/user-flow.md)
 - [数据模型](docs/data-model.md)
 - [客户端方法](docs/client-methods.md)
+- [服务端 API Routes](docs/api-routes.md)
+- [页面结构与组件](docs/pages.md)
 - [断线与重连](docs/disconnect.md)
