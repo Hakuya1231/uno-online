@@ -57,6 +57,7 @@ rooms (集合)
 | hostId | string | 房主玩家 ID |
 | dealerMode | `"host" \| "draw_compare"` | 庄家选择方式（房主当庄家 / 摸牌比大小） |
 | dealerId | string | 庄家玩家 ID |
+| dealerDrawResults | Map\<playerId, Card\> \| null | 选庄摸牌结果（仅 draw_compare 模式，选庄完成后清除） |
 | status | `"waiting" \| "choosing_dealer" \| "dealing" \| "playing" \| "paused" \| "finished"` | 房间状态 |
 | players | Player[] | 玩家列表（按加入时间排序，房主第一，AI 排最后） |
 | discardPile | Card[] | 弃牌堆 |
@@ -78,6 +79,7 @@ rooms (集合)
 | 字段 | 类型 | 说明 |
 |------|------|------|
 | drawPile | Card[] | 摸牌堆具体内容 |
+| dealerDrawPile | Card[] \| null | 选庄抽牌堆（仅 draw_compare 模式，选庄完成后清除） |
 
 ### 手牌文档 `rooms/{roomId}/hands/{playerId}`（仅对应玩家可读）
 

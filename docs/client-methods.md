@@ -43,6 +43,7 @@
 - status（游戏状态）
 - dealerMode（庄家选择方式）
 - dealerId（庄家）
+- dealerDrawResults（选庄摸牌结果，各玩家摸到的牌）
 - players（玩家列表：昵称、是否 AI 等）
 - currentPlayerIndex（轮到谁）
 - direction（出牌方向）
