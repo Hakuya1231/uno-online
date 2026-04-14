@@ -39,7 +39,7 @@
 | hostId | string | 房主玩家 ID |
 | dealerMode | `"host" \| "draw_compare"` | 庄家选择方式（房主当庄家 / 摸牌比大小） |
 | dealerId | string | 庄家玩家 ID |
-| status | `"waiting" \| "playing" \| "finished"` | 房间状态 |
+| status | `"waiting" \| "choosing_dealer" \| "dealing" \| "playing" \| "paused" \| "finished"` | 房间状态（等待中 / 选庄中 / 等待发牌 / 对战中 / 暂停 / 结束） |
 | players | Player[] | 玩家列表（按加入时间排序，房主第一，AI 排最后） |
 | drawPile | Card[] | 摸牌堆 |
 | discardPile | Card[] | 弃牌堆 |
@@ -50,28 +50,9 @@
 | hands | Map\<playerId, Card[]\> | 各玩家手牌 |
 | scores | Map\<playerId, number\> | 各玩家累计得分 |
 | currentRound | number | 当前局数 |
+| disconnectedPlayerId | string \| null | 断线玩家 ID，无断线时为 null |
+| pauseUntil | number \| null | 暂停截止时间戳（毫秒），客户端用 pauseUntil - now 算剩余秒数 |
 
 ### 方法
 
-#### 全局级
-
-| 方法 | 入参 | 出参 | 说明 |
-|------|------|------|------|
-| 生成随机昵称 | 无 | string | 6-10 个中文字符 |
-| 匿名登录 | 无 | playerId | 首次进入时自动触发，登录态持久化到浏览器 |
-| 复制房间号/链接 | 无 | 无 | 复制到剪切板 |
-
-#### 房间级
-
-| 方法 | 入参 | 出参 | 说明 |
-|------|------|------|------|
-| 创建房间 | 庄家选择方式 | roomId | hostId 从 auth context 获取 |
-| 加入房间 | roomId | 房间信息 | playerId 从 auth context 获取 |
-| 订阅房间状态 | roomId | 实时房间信息 | Firestore onSnapshot 实时监听 |
-| 添加 AI | roomId | Player | 需校验总人数 <= 8 |
-| 移除 AI | roomId, playerId | 无 | |
-| 开始游戏 | roomId | 无 | 需校验人数 >= 2，仅房主可操作 |
-
-#### 牌局级
-
-待讨论。
+见 [client-methods.md](client-methods.md)（客户端方法）。
