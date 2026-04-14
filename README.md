@@ -35,4 +35,5 @@
 - [客户端方法](docs/client-methods.md)
 - [服务端 API Routes](docs/api-routes.md)
 - [页面结构与组件](docs/pages.md)
+- [AI 玩家逻辑](docs/ai-logic.md)
 - [断线与重连](docs/disconnect.md)
