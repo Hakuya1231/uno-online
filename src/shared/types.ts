@@ -61,6 +61,20 @@ export type LastAction =
       /** 服务器时间戳（ms） */
       at: number;
     }
+  | {
+      /** 选庄阶段：某玩家抽取了选庄牌 */
+      type: "dealer_card_drawn";
+      by: string;
+      card: Card;
+      at: number;
+    }
+  | {
+      /** 发牌完成并翻出起始牌 */
+      type: "dealt";
+      by: string;
+      initialCard: Card;
+      at: number;
+    }
   | { type: "card_drawn"; by: string; at: number }
   | { type: "skipped"; by: string; at: number }
   | {
