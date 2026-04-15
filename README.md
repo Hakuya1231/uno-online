@@ -38,3 +38,4 @@
 - [AI 玩家逻辑](docs/ai-logic.md)
 - [断线与重连](docs/disconnect.md)
 - [安全规则与约束说明](docs/security-and-rules.md)
+- [测试计划](docs/testing-plan.md)
