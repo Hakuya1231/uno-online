@@ -31,7 +31,7 @@
 | 接受    | POST | `/api/game/accept`          | `{ roomId }`                          | `{}`               | 该玩家被 +2/+4                  | 从 drawPile 取 pendingDraw.count 张牌加入手牌，pendingDraw 归零为 `{count:0,type:null}`，更新 handCounts、drawPileCount，跳过回合，并重置 hasDrawnThisTurn=false                                                                      |
 | 质疑    | POST | `/api/game/challenge`       | `{ roomId }`                          | `{ hand, result }` | 该玩家被 +4                     | 读取上家手牌判断合法性，质疑成功：上家摸 4 张、+4 从 discardPile 收回到上家手牌，更新 discardPile；质疑失败：质疑者摸 6 张，跳过回合。更新相关手牌、handCounts、drawPileCount                                                                                          |
 | 开始下一局 | POST | `/api/game/next-round`      | `{ roomId }`                          | `{}`               | 仅房主，状态为 finished            | 保留 players 和 scores，重置牌堆、手牌、currentRound+1，上局胜者为庄家（dealerId=胜者），status=dealing                                                                                                                               |
-| 结束游戏  | POST | `/api/game/end`             | `{ roomId }`                          | `{}`               | 已登录（可选：仅房主）                 | **归档房间**：更新 `status="ended"`，并清除客户端本地 roomId；不删除 Firestore 数据（后续如需可做定时清理）                                                                                                                                    |
+| 结束游戏  | POST | `/api/game/end`             | `{ roomId }`                          | `{}`               | 已登录（可选：仅房主）                 | **归档房间**：更新 `status="ended"`；不删除 Firestore 数据（后续如需可做定时清理）                                                                                                                                    |
 
 
 ## 断线相关
@@ -41,6 +41,6 @@
 | ---- | ---- | --------------------- | ---------------------------------- | ---- | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
 | 暂停游戏 | POST | `/api/game/pause`     | `{ roomId, disconnectedPlayerId }` | `{}` | 幂等：状态为 playing 或 paused | 若 playing：设 status=paused，写入 disconnectedPlayerId，pauseUntil=now+30s；若已 paused：直接返回成功（不覆盖已存在的 disconnectedPlayerId/pauseUntil） |
 | 重连   | POST | `/api/game/reconnect` | `{ roomId }`                       | `{}` | 状态为 paused，是断线玩家本人      | 设 status=playing，清除 disconnectedPlayerId 和 pauseUntil                                                                          |
-| 超时结束 | POST | `/api/game/timeout`   | `{ roomId }`                       | `{}` | 状态为 paused，已超时，幂等处理     | 设 status=finished；**本局作废**（不计算本局得分，不变更 scores），写入 lastAction=timed_out_void_round                                              |
+| 超时结束 | POST | `/api/game/timeout`   | `{ roomId }`                       | `{}` | 状态为 paused，已超时，幂等处理     | 设 `status=ended`（房间归档；本局不计分、不变更 scores）；若已 `ended` 则直接返回成功                                              |
 
 

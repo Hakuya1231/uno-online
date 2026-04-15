@@ -46,7 +46,7 @@ Presence 只用于在线状态：
   - 仅断线玩家本人：重连
 - **幂等**（至少建议做到以下程度）：
   - `/api/game/pause`：若已 paused 则直接返回成功，不覆盖已写入的断线信息
-  - `/api/game/timeout`：若已 finished 则直接返回成功
+  - `/api/game/timeout`：若已 ended 则直接返回成功
   - 其他接口：使用 `roomVersion` / transaction 防重入与并发写冲突
 
 ## 四、roomVersion 的用途
@@ -87,5 +87,5 @@ Presence 只用于在线状态：
 
 - **暂停 `/api/game/pause`**：需要（幂等；多人同时触发暂停时避免互相覆盖）
 - **重连 `/api/game/reconnect`**：需要（从 paused→playing 的状态切换必须原子）
-- **超时 `/api/game/timeout`**：需要（幂等；从 paused→finished 的状态切换必须原子）
+- **超时 `/api/game/timeout`**：需要（幂等；从 paused→ended 的状态切换必须原子）
 

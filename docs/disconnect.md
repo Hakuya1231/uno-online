@@ -35,14 +35,14 @@ Realtime Database 仅用于 presence 这一个功能，游戏数据仍存储在 
 2. 从浏览器 localStorage 读取 roomId，重新订阅房间状态和手牌
 3. 客户端检查 `pauseUntil`：
    - **未超时**（now < pauseUntil）：调用 API 通知服务端玩家已重连，服务端更新 `status = "playing"`，清除 `disconnectedPlayerId` 和 `pauseUntil`，游戏恢复
-   - **已超时**（now >= pauseUntil）：调用 API 结束游戏，服务端更新 `status = "finished"`，进入结算
+   - **已超时**（now >= pauseUntil）：调用 API，服务端更新 `status = "ended"`（房间归档）
 
 ## 超时未重连
 
 1. 倒计时 30 秒结束，断线玩家仍未重连
 2. 任意在线客户端调用 API：超时结束游戏
 3. 服务端做幂等处理（已结束的游戏不会重复结束）
-4. 更新 Firestore：`status = "finished"`，进入结算
+4. 更新 Firestore：`status = "ended"`（房间归档）
 
 ## 唯一真人玩家断线
 

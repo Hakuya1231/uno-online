@@ -99,10 +99,10 @@ type LastAction =
 仅服务端通过 Admin SDK 读写，客户端无权访问。
 
 
-| 字段             | 类型     | 说明      |
-| -------------- | ------ | ------- |
-| drawPile       | Card[] | 摸牌堆具体内容 |
-| dealerDrawPile | Card[] | null    |
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| drawPile | Card[] | 摸牌堆具体内容 |
+| dealerDrawPile | Card[] \| null | 选庄抽牌堆（仅 draw_compare 模式，选庄完成后为 null） |
 
 
 ### 手牌文档 `rooms/{roomId}/hands/{playerId}`（仅对应玩家可读）
