@@ -15,7 +15,7 @@
 | 加入房间  | POST   | `/api/room/join`  | `{ roomId }`           | `{}`         | 已登录，房间存在，状态为 waiting，人数未满 | 将玩家追加到 players 数组                                                                                                                                               |
 | 添加 AI | POST   | `/api/room/ai`    | `{ roomId }`           | `{}`         | 仅房主，总人数 <= 8              | 生成 AI 玩家，追加到 players 数组末尾                                                                                                                                       |
 | 移除 AI | DELETE | `/api/room/ai`    | `{ roomId, playerId }` | `{}`         | 仅房主，目标是 AI                | 从 players 数组中移除该 AI                                                                                                                                             |
-| 开始游戏  | POST   | `/api/room/start` | `{ roomId }`           | `{}`         | 仅房主，人数 >= 2               | dealerMode=host 时：设 dealerId=hostId，status=dealing；dealerMode=draw_compare 时：生成 **10 张不重复的数字牌**（0-9）洗牌写入 private/gameData.dealerDrawPile，status=choosing_dealer |
+| 开始游戏  | POST   | `/api/room/start` | `{ roomId }`           | `{}`         | 仅房主，人数 >= 2               | dealerMode=host 时：设 dealerId=hostId，status=dealing；dealerMode=draw_compare 时：由服务端生成 **10 张不重复的数字牌**（0-9）洗牌写入 private/gameData.dealerDrawPile，status=choosing_dealer |
 
 
 ## 牌局级
