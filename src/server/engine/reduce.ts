@@ -469,6 +469,10 @@ export function reduce(input: ReduceInput, action: EngineAction): ReduceResult {
 
       if (card.type === "reverse") {
         nextRoom.direction = (room.direction === 1 ? -1 : 1) as 1 | -1;
+        // 规则约定：2 人局时 Reverse 等价于 Skip（跳过对手）
+        if (room.players.length === 2) {
+          steps = 2;
+        }
       }
 
       if (card.type === "skip") {

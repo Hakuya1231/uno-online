@@ -133,6 +133,31 @@ describe("engine/reduce (minimal)", () => {
     ).toThrow(/chosenColor/);
   });
 
+  it("PLAY_CARD: 2 人局打出 Reverse 等价于 Skip（跳过对手）", () => {
+    vi.spyOn(Date, "now").mockReturnValue(12000);
+    const input = baseInput({
+      room: {
+        status: "playing",
+        players: [
+          { id: "p1", name: "A", isAI: false },
+          { id: "p2", name: "B", isAI: false },
+        ],
+        currentPlayerIndex: 0,
+        direction: 1,
+        discardPile: [{ type: "number", color: "green", value: 1 }],
+        chosenColor: null,
+        pendingDraw: { count: 0, type: null },
+      },
+      hand: [{ type: "reverse", color: "green", value: null }],
+      drawPile: [{ type: "number", color: "red", value: 1 }],
+    });
+
+    const out = reduce(input, { type: "PLAY_CARD", playerId: "p1", cardIndex: 0 });
+    // 翻转方向，但由于 steps=2，依然轮到 p1
+    expect(out.room.direction).toBe(-1);
+    expect(out.room.currentPlayerIndex).toBe(0);
+  });
+
   it("DRAW_FOR_DEALER: 全员摸完后选出最大点数为庄家并进入 dealing", () => {
     vi.spyOn(Date, "now").mockReturnValue(4000);
     const input = baseInput({
