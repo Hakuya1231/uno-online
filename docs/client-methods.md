@@ -49,7 +49,7 @@
 - direction（出牌方向）
 - discardPile 顶牌（当前要匹配的牌）
 - chosenColor（万能牌指定颜色）
-- pendingDraw（累计摸牌数）
+- pendingDraw（累计摸牌惩罚；若为 `+4` 则会携带 `sourceColor` 作为质疑判定依据）
 - hasDrawnThisTurn（当前玩家本回合是否已摸牌，用于刷新后仍能正确显示/校验跳过按钮）
 - drawPile 数量（摸牌堆剩余张数，不暴露具体牌）
 - 各玩家手牌数量（不暴露内容）

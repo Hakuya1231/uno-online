@@ -69,7 +69,7 @@ rooms (集合)
 | chosenColor | `"red" \| "yellow" \| "green" \| "blue" \| null` | 万能牌出牌后指定的颜色，非万能牌时为 null |
 | currentPlayerIndex | number | 当前出牌人在玩家列表中的索引 |
 | direction | `1 \| -1` | 出牌方向（1 顺时针，-1 逆时针） |
-| pendingDraw | `{ count: number, type: "draw_two" \| "wild_draw_four" \| null }` | 叠加累计摸牌数与类型；无叠加时 `{ count: 0, type: null }` |
+| pendingDraw | `PendingDraw` | 叠加累计摸牌；见下方结构（+4 会带 `sourceColor` 用于质疑判定） |
 | drawPileCount | number | 摸牌堆剩余张数（不暴露具体牌） |
 | handCounts | `Record<string, number>` | 各玩家手牌数量（不暴露内容） |
 | scores | `Record<string, number>` | 各玩家累计得分 |
@@ -92,6 +92,17 @@ type LastAction =
   | { type: "skipped"; by: string; at: number }
   | { type: "accepted_draw"; by: string; drawType: "draw_two" | "wild_draw_four"; count: number; at: number }
   | { type: "challenge_result"; by: string; targetId: string; result: "success" | "fail"; at: number };
+```
+
+#### pendingDraw 结构（示例）
+
+`pendingDraw` 用于表示“累计惩罚摸牌”状态，并且把 `+4` 质疑所需的判定依据一起绑定在这段状态里。
+
+```ts
+type PendingDraw =
+  | { count: 0; type: null }
+  | { count: number; type: "draw_two" }
+  | { count: number; type: "wild_draw_four"; sourceColor: "red" | "yellow" | "green" | "blue" };
 ```
 
 ### 私密文档 `rooms/{roomId}/private/gameData`（仅服务端）

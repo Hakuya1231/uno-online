@@ -1,7 +1,7 @@
 import type { Card, CardColor, LastAction, PendingDrawType, PublicRoomDoc } from "@/shared";
-import { createStandardDeck, drawTop, flipInitialNumberCard, shuffle } from "./cards";
+import { drawTop, flipInitialNumberCard } from "./cards";
 import type { EngineAction, ReduceInput } from "./actions";
-import { canStackPenalty, isPlayable } from "./rules";
+import { canPlayWildDrawFour, canStackPenalty, getActiveColor, isPlayable } from "./rules";
 import { recycleDiscardPile } from "./cards";
 
 export type ReduceResult = {
@@ -20,6 +20,11 @@ export type ReduceResult = {
    * 上层应据此写入 rooms/{roomId}/hands/{playerId}.cards
    */
   dealtHands?: Record<string, Card[]>;
+  /**
+   * 多人手牌更新（仅少数动作会影响到非当前玩家手牌，例如 +4 质疑成功时给被质疑者补牌）。
+   * 上层应据此写回对应 hands/{playerId}.cards
+   */
+  handsPatch?: Record<string, Card[]>;
   /**
    * 可选：本次动作直接产出的 lastAction（调用方通常会写回 rooms/{roomId}.lastAction）。
    * room 里也会同步更新 lastAction，因此这里主要用于测试与调试。
@@ -106,6 +111,35 @@ export function reduce(input: ReduceInput, action: EngineAction): ReduceResult {
   let nextDealerDrawPile = input.dealerDrawPile ? input.dealerDrawPile.slice() : null;
 
   switch (action.type) {
+    case "START_GAME": {
+      if (room.status !== "waiting") throw new Error("当前状态不允许开始游戏");
+      if (action.playerId !== room.hostId) throw new Error("只有房主可以开始游戏");
+
+      const lastAction: LastAction = { type: "game_started", by: action.playerId, at: now };
+
+      if (room.dealerMode === "host") {
+        nextRoom.dealerId = room.hostId;
+        nextRoom.status = "dealing";
+        nextRoom.dealerDrawResults = null;
+        nextDealerDrawPile = null;
+      } else {
+        // draw_compare：选庄抽牌堆应由上层初始化并传入
+        if (!nextDealerDrawPile || nextDealerDrawPile.length === 0) {
+          throw new Error("未初始化选庄抽牌堆，无法进入选庄阶段");
+        }
+        nextRoom.status = "choosing_dealer";
+        nextRoom.dealerDrawResults = null;
+      }
+
+      finalize(room, nextRoom, lastAction);
+      return {
+        room: nextRoom as ReduceResult["room"],
+        hand: nextHand,
+        drawPile: nextDrawPile,
+        dealerDrawPile: nextDealerDrawPile,
+        lastAction,
+      };
+    }
     case "DRAW_FOR_DEALER": {
       if (room.status !== "choosing_dealer") throw new Error("当前状态不允许选庄摸牌");
       if (!nextDealerDrawPile || nextDealerDrawPile.length === 0) {
@@ -151,18 +185,85 @@ export function reduce(input: ReduceInput, action: EngineAction): ReduceResult {
         lastAction,
       };
     }
+    case "NEXT_ROUND": {
+      if (room.status !== "finished") throw new Error("当前状态不允许开始下一局");
+      if (action.playerId !== room.hostId) throw new Error("只有房主可以开始下一局");
+
+      const winnerExists = room.players.some((p) => p.id === action.winnerId);
+      if (!winnerExists) throw new Error("winnerId 不在玩家列表中");
+
+      nextRoom.dealerId = action.winnerId;
+      nextRoom.currentRound = room.currentRound + 1;
+      nextRoom.status = "dealing";
+
+      // 回合内状态重置（发牌后会覆盖 drawPileCount/handCounts/discardPile 等）
+      nextRoom.discardPile = [];
+      nextRoom.chosenColor = null;
+      nextRoom.pendingDraw = { count: 0, type: null };
+      nextRoom.hasDrawnThisTurn = false;
+      nextRoom.direction = 1;
+      nextRoom.dealerDrawResults = null;
+      nextDealerDrawPile = null;
+      nextDrawPile = [];
+      nextRoom.drawPileCount = 0;
+
+      const resetCounts: Record<string, number> = {};
+      for (const p of room.players) resetCounts[p.id] = 0;
+      nextRoom.handCounts = resetCounts;
+
+      // 从新庄家下一位开始（进入 playing 后生效；这里先设置好，便于 UI 展示）
+      const dealerIndex = room.players.findIndex((p) => p.id === action.winnerId);
+      if (dealerIndex < 0) throw new Error("winnerId 庄家索引无效");
+      nextRoom.currentPlayerIndex = (dealerIndex + 1) % room.players.length;
+
+      const lastAction: LastAction = {
+        type: "next_round_started",
+        by: action.playerId,
+        dealerId: action.winnerId,
+        currentRound: nextRoom.currentRound,
+        at: now,
+      };
+      finalize(room, nextRoom, lastAction);
+
+      return {
+        room: nextRoom as ReduceResult["room"],
+        hand: nextHand,
+        drawPile: nextDrawPile,
+        dealerDrawPile: nextDealerDrawPile,
+        lastAction,
+      };
+    }
+    case "END_GAME": {
+      if (room.status === "ended") throw new Error("游戏已结束");
+      if (action.playerId !== room.hostId) throw new Error("只有房主可以结束游戏");
+
+      nextRoom.status = "ended";
+      nextRoom.dealerDrawResults = null;
+      nextDealerDrawPile = null;
+
+      const lastAction: LastAction = { type: "game_ended", by: action.playerId, at: now };
+      finalize(room, nextRoom, lastAction);
+      return {
+        room: nextRoom as ReduceResult["room"],
+        hand: nextHand,
+        drawPile: nextDrawPile,
+        dealerDrawPile: nextDealerDrawPile,
+        lastAction,
+      };
+    }
     case "DEAL": {
       if (room.status !== "dealing") throw new Error("当前状态不允许发牌");
       if (action.playerId !== room.dealerId) throw new Error("只有庄家可以发牌");
 
-      const deck = shuffle(createStandardDeck());
       const playerIds = room.players.map((p) => p.id);
       const handSize = 7;
-      if (deck.length < playerIds.length * handSize) throw new Error("牌堆数量不足，无法发牌");
+      if (nextDrawPile.length < playerIds.length * handSize + 1) {
+        throw new Error("摸牌堆数量不足，无法发牌/翻起始牌");
+      }
 
       // 发牌（按玩家顺序切牌）
       const dealtHands: Record<string, Card[]> = {};
-      let pile = deck;
+      let pile = nextDrawPile;
       for (const pid of playerIds) {
         dealtHands[pid] = pile.slice(0, handSize);
         pile = pile.slice(handSize);
@@ -206,6 +307,115 @@ export function reduce(input: ReduceInput, action: EngineAction): ReduceResult {
         drawPile: nextDrawPile,
         dealerDrawPile: nextDealerDrawPile,
         dealtHands,
+        lastAction,
+      };
+    }
+    case "ACCEPT_DRAW": {
+      if (room.status !== "playing") throw new Error("当前状态不允许接受惩罚摸牌");
+      assertIsPlayersTurn(room, action.playerId);
+      if (room.pendingDraw.count <= 0) throw new Error("当前没有需要接受的惩罚摸牌");
+      const drawType = room.pendingDraw.type;
+      if (!drawType) throw new Error("pendingDraw.type 不能为空");
+
+      // 连续抽 N 张（中途可能需要回收弃牌堆）
+      for (let i = 0; i < room.pendingDraw.count; i++) {
+        const ensured = ensureDrawPileAvailable(nextDrawPile, nextRoom.discardPile);
+        nextDrawPile = ensured.drawPile;
+        const { card, pile } = drawTop(nextDrawPile);
+        nextDrawPile = pile;
+        nextHand.push(card);
+      }
+
+      nextRoom.handCounts[action.playerId] = nextHand.length;
+      nextRoom.drawPileCount = nextDrawPile.length;
+      nextRoom.pendingDraw = { count: 0, type: null };
+      nextRoom.hasDrawnThisTurn = false;
+      nextRoom.currentPlayerIndex = nextIndex(room, 1);
+
+      const lastAction: LastAction = {
+        type: "accepted_draw",
+        by: action.playerId,
+        drawType,
+        count: room.pendingDraw.count,
+        at: now,
+      };
+      finalize(room, nextRoom, lastAction);
+      return {
+        room: nextRoom as ReduceResult["room"],
+        hand: nextHand,
+        drawPile: nextDrawPile,
+        dealerDrawPile: nextDealerDrawPile,
+        lastAction,
+      };
+    }
+    case "CHALLENGE_WILD_DRAW_FOUR": {
+      if (room.status !== "playing") throw new Error("当前状态不允许质疑 +4");
+      assertIsPlayersTurn(room, action.playerId);
+      if (room.pendingDraw.type !== "wild_draw_four" || room.pendingDraw.count <= 0) {
+        throw new Error("当前不存在可质疑的 +4 惩罚");
+      }
+      if (room.discardPile.length < 2) throw new Error("弃牌堆不足，无法进行 +4 质疑判定");
+      const top = room.discardPile[room.discardPile.length - 1]!;
+      if (top.type !== "wild_draw_four") throw new Error("当前桌面顶牌不是 +4，无法质疑");
+      const sourceColor = room.pendingDraw.sourceColor;
+
+      const targetIndex = nextIndex(room, -1);
+      const targetId = room.players[targetIndex]?.id;
+      if (!targetId) throw new Error("被质疑者索引无效");
+
+      const targetHand = action.targetHand.slice();
+      const legal = canPlayWildDrawFour(targetHand, sourceColor);
+
+      let result: "success" | "fail";
+      const handsPatch: Record<string, Card[]> = {};
+
+      if (legal) {
+        // +4 合法：质疑失败，质疑者摸 6 张
+        result = "fail";
+        const toDraw = 6;
+        for (let i = 0; i < toDraw; i++) {
+          const ensured = ensureDrawPileAvailable(nextDrawPile, nextRoom.discardPile);
+          nextDrawPile = ensured.drawPile;
+          const { card, pile } = drawTop(nextDrawPile);
+          nextDrawPile = pile;
+          nextHand.push(card);
+        }
+        nextRoom.handCounts[action.playerId] = nextHand.length;
+      } else {
+        // +4 不合法：质疑成功，被质疑者摸 4 张
+        result = "success";
+        const toDraw = 4;
+        for (let i = 0; i < toDraw; i++) {
+          const ensured = ensureDrawPileAvailable(nextDrawPile, nextRoom.discardPile);
+          nextDrawPile = ensured.drawPile;
+          const { card, pile } = drawTop(nextDrawPile);
+          nextDrawPile = pile;
+          targetHand.push(card);
+        }
+        handsPatch[targetId] = targetHand;
+        nextRoom.handCounts[targetId] = targetHand.length;
+      }
+
+      nextRoom.drawPileCount = nextDrawPile.length;
+      nextRoom.pendingDraw = { count: 0, type: null };
+      nextRoom.hasDrawnThisTurn = false;
+      nextRoom.currentPlayerIndex = nextIndex(room, 1);
+
+      const lastAction: LastAction = {
+        type: "challenge_result",
+        by: action.playerId,
+        targetId,
+        result,
+        at: now,
+      };
+      finalize(room, nextRoom, lastAction);
+
+      return {
+        room: nextRoom as ReduceResult["room"],
+        hand: nextHand,
+        drawPile: nextDrawPile,
+        dealerDrawPile: nextDealerDrawPile,
+        handsPatch: Object.keys(handsPatch).length ? handsPatch : undefined,
         lastAction,
       };
     }
@@ -256,7 +466,9 @@ export function reduce(input: ReduceInput, action: EngineAction): ReduceResult {
       if (penaltyType === "draw_two") {
         nextRoom.pendingDraw = { count: room.pendingDraw.count + 2, type: "draw_two" };
       } else if (penaltyType === "wild_draw_four") {
-        nextRoom.pendingDraw = { count: room.pendingDraw.count + 4, type: "wild_draw_four" };
+        const topBefore = room.discardPile[room.discardPile.length - 1]!;
+        const sourceColor = getActiveColor(topBefore, room.chosenColor);
+        nextRoom.pendingDraw = { count: room.pendingDraw.count + 4, type: "wild_draw_four", sourceColor };
       }
 
       nextRoom.currentPlayerIndex = nextIndex(nextRoom, steps);

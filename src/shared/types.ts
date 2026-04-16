@@ -44,12 +44,27 @@ export type Player = {
 
 export type PendingDrawType = "draw_two" | "wild_draw_four" | null;
 
-export type PendingDraw = {
-  /** 累计需要摸牌的张数 */
-  count: number;
-  /** 当前累计类型（用于限制叠加规则） */
-  type: PendingDrawType;
-};
+export type PendingDraw =
+  | {
+      /** 无叠加惩罚 */
+      count: 0;
+      type: null;
+    }
+  | {
+      /** +2 叠加惩罚 */
+      count: number;
+      type: "draw_two";
+    }
+  | {
+      /**
+       * +4 叠加惩罚。
+       *
+       * sourceColor：出这张 +4 之前桌面的“有效颜色”（用于后续质疑判定）。
+       */
+      count: number;
+      type: "wild_draw_four";
+      sourceColor: Exclude<CardColor, null>;
+    };
 
 export type LastAction =
   | {
@@ -59,6 +74,12 @@ export type LastAction =
       card: Card;
       chosenColor?: Exclude<CardColor, null>;
       /** 服务器时间戳（ms） */
+      at: number;
+    }
+  | {
+      /** 房主开始游戏（进入选庄或发牌阶段） */
+      type: "game_started";
+      by: string;
       at: number;
     }
   | {
@@ -73,6 +94,20 @@ export type LastAction =
       type: "dealt";
       by: string;
       initialCard: Card;
+      at: number;
+    }
+  | {
+      /** 开始下一局（上一局赢家成为庄家） */
+      type: "next_round_started";
+      by: string;
+      dealerId: string;
+      currentRound: number;
+      at: number;
+    }
+  | {
+      /** 手动结束整场游戏/房间归档 */
+      type: "game_ended";
+      by: string;
       at: number;
     }
   | { type: "card_drawn"; by: string; at: number }
