@@ -1,4 +1,5 @@
 import { cert, getApps, initializeApp } from "firebase-admin/app";
+import { getAuth } from "firebase-admin/auth";
 import { getFirestore } from "firebase-admin/firestore";
 
 /**
@@ -23,5 +24,15 @@ export function getAdminFirestore() {
   }
 
   return getFirestore();
+}
+
+export function getAdminAuth() {
+  /**
+   * 注意：
+   * - `firebase-admin` 只能在 Node.js runtime 使用（不能在 Edge runtime）
+   * - `getAuth()` 绑定默认 app；因此这里复用 `getAdminFirestore()` 来确保 app 已完成初始化
+   */
+  getAdminFirestore();
+  return getAuth();
 }
 
