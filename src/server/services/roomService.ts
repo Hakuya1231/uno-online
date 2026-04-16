@@ -1,6 +1,7 @@
 import type { DealerMode, Player, PublicRoomDoc } from "@/shared";
 import type { PrivateGameData, RoomRepo } from "../repos/types";
 import { createDealerDrawPile } from "../engine";
+import { reduce, type EngineAction } from "../engine";
 
 export type RoomIdGenerator = () => string;
 
@@ -153,27 +154,31 @@ export class RoomService {
     await this.repo.runTransaction(async (tx) => {
       const room = await this.repo.getRoom(tx, input.roomId);
       if (!room) throw new Error("房间不存在");
-      if (room.status !== "waiting") throw new Error("当前状态不允许开始游戏");
-      if (input.playerId !== room.hostId) throw new Error("只有房主可以开始游戏");
-
-      const nextRoom: PublicRoomDoc = { ...room, roomVersion: room.roomVersion + 1 };
       const privateData = await this.repo.getPrivateGameData(tx, input.roomId);
       if (!privateData) throw new Error("私密数据不存在（异常状态）");
-      const nextPrivate: PrivateGameData = { ...privateData };
 
-      if (room.dealerMode === "host") {
-        nextRoom.dealerId = room.hostId;
-        nextRoom.status = "dealing";
-        nextRoom.dealerDrawResults = null;
-        nextPrivate.dealerDrawPile = null;
-      } else {
-        nextRoom.status = "choosing_dealer";
-        nextRoom.dealerDrawResults = null;
-        nextPrivate.dealerDrawPile = createDealerDrawPile();
-      }
+      // draw_compare：选庄抽牌堆由 service 初始化后注入引擎
+      const dealerDrawPile =
+        room.dealerMode === "draw_compare" ? createDealerDrawPile() : privateData.dealerDrawPile;
 
-      await this.repo.updateRoom(tx, input.roomId, nextRoom);
-      await this.repo.updatePrivateGameData(tx, input.roomId, nextPrivate);
+      const hand = await this.repo.getHand(tx, input.roomId, input.playerId);
+      const action: EngineAction = { type: "START_GAME", playerId: input.playerId };
+      const out = reduce(
+        {
+          room: room as unknown as Parameters<typeof reduce>[0]["room"],
+          hand,
+          drawPile: privateData.drawPile,
+          dealerDrawPile,
+        },
+        action,
+      );
+
+      await this.repo.updateRoom(tx, input.roomId, out.room as unknown as PublicRoomDoc);
+      await this.repo.updatePrivateGameData(tx, input.roomId, {
+        ...privateData,
+        drawPile: out.drawPile,
+        dealerDrawPile: out.dealerDrawPile,
+      } satisfies PrivateGameData);
     });
   }
 }
