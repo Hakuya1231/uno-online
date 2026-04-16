@@ -67,6 +67,14 @@ function ensureChosenColor(
 ): Exclude<CardColor, null> | null {
   if (card.type === "wild" || card.type === "wild_draw_four") {
     if (!chosenColor) throw new Error("万能牌必须指定 chosenColor");
+    if (
+      chosenColor !== "red" &&
+      chosenColor !== "yellow" &&
+      chosenColor !== "green" &&
+      chosenColor !== "blue"
+    ) {
+      throw new Error("chosenColor 非法");
+    }
     return chosenColor;
   }
   return null;

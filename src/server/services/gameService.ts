@@ -91,7 +91,12 @@ export class GameService {
    * - 引擎会更新公开房间状态（discardPile/pendingDraw/currentPlayerIndex...）
    * - service 负责把当前玩家手牌写回 hands 子集合
    */
-  async playCard(input: { roomId: string; playerId: string; cardIndex: number; chosenColor?: any }): Promise<void> {
+  async playCard(input: {
+    roomId: string;
+    playerId: string;
+    cardIndex: number;
+    chosenColor?: "red" | "yellow" | "green" | "blue" | null;
+  }): Promise<void> {
     await this.repo.runTransaction(async (tx) => {
       const room = await this.repo.getRoom(tx, input.roomId);
       if (!room) throw new Error("房间不存在");
@@ -100,11 +105,24 @@ export class GameService {
 
       const hand = await this.repo.getHand(tx, input.roomId, input.playerId);
 
+      // 运行时防御：避免把非法 chosenColor 写入房间状态
+      const chosenColor =
+        input.chosenColor === undefined || input.chosenColor === null
+          ? null
+          : input.chosenColor === "red" ||
+              input.chosenColor === "yellow" ||
+              input.chosenColor === "green" ||
+              input.chosenColor === "blue"
+            ? input.chosenColor
+            : (() => {
+                throw new Error("chosenColor 非法");
+              })();
+
       const action: EngineAction = {
         type: "PLAY_CARD",
         playerId: input.playerId,
         cardIndex: input.cardIndex,
-        chosenColor: input.chosenColor ?? null,
+        chosenColor,
       };
       const out = reduce(
         {

@@ -186,5 +186,41 @@ describe("GameService (in-memory)", () => {
     const room = await repo.runTransaction((tx) => repo.getRoom(tx, roomId));
     expect(room?.status).toBe("ended");
   });
+
+  it("playCard: 非法 chosenColor 会直接报错（避免写入脏数据）", async () => {
+    const repo = new InMemoryRoomRepo();
+    const roomSvc = new RoomService(repo, () => "r1");
+    const gameSvc = new GameService(repo);
+
+    const { roomId } = await roomSvc.createRoom({ hostId: "p1", hostName: "A", dealerMode: "host" });
+    await roomSvc.joinRoom({ roomId, playerId: "p2", name: "B" });
+
+    await repo.runTransaction(async (tx) => {
+      const room = await repo.getRoom(tx, roomId);
+      const priv = await repo.getPrivateGameData(tx, roomId);
+      if (!room || !priv) throw new Error("missing");
+
+      await repo.updateRoom(tx, roomId, {
+        ...room,
+        status: "playing",
+        currentPlayerIndex: 0,
+        direction: 1,
+        discardPile: [{ type: "number", color: "red", value: 7 }],
+        chosenColor: null,
+        pendingDraw: { count: 0, type: null },
+        handCounts: { p1: 1, p2: 0 },
+      });
+      await repo.updatePrivateGameData(tx, roomId, { ...priv, drawPile: [] });
+      await repo.setHands(tx, roomId, {
+        p1: [{ type: "wild", color: null, value: null }],
+        p2: [],
+      });
+    });
+
+    // 强制绕过 TS 类型检查
+    await expect(
+      gameSvc.playCard({ roomId, playerId: "p1", cardIndex: 0, chosenColor: 1 as any }),
+    ).rejects.toThrow(/chosenColor.*非法/);
+  });
 });
 
