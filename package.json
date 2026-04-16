@@ -12,6 +12,7 @@
     "simulate:draw-compare": "tsx scripts/simulate-draw-compare-challenge.ts"
   },
   "dependencies": {
+    "firebase": "^12.12.0",
     "firebase-admin": "^13.8.0",
     "next": "16.2.3",
     "react": "19.2.4",
