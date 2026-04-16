@@ -1,8 +1,5 @@
 import type { Card, PublicRoomDoc } from "@/shared";
-import { createStandardDeck, shuffle } from "../engine/cards";
-import type { EngineAction } from "../engine/actions";
-import { scoreHand } from "../engine/rules";
-import { reduce } from "../engine/reduce";
+import { createStandardDeck, reduce, scoreHand, shuffle, type EngineAction } from "../engine";
 import type { RoomRepo } from "../repos/types";
 
 export class GameService {

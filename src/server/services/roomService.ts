@@ -1,6 +1,6 @@
 import type { DealerMode, Player, PublicRoomDoc } from "@/shared";
 import type { PrivateGameData, RoomRepo } from "../repos/types";
-import { createDealerDrawPile } from "../engine/cards";
+import { createDealerDrawPile } from "../engine";
 
 export type RoomIdGenerator = () => string;
 
