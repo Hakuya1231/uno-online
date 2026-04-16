@@ -169,6 +169,12 @@ export type PublicRoomDoc = {
   scores: Record<string, number>;
   /** 当前局数（从 1 开始） */
   currentRound: number;
+  /**
+   * 本局赢家玩家 ID（仅 status="finished" 时应为非 null）。
+   *
+   * 用途：开始下一局时把赢家设为新庄家。
+   */
+  roundWinnerId: string | null;
 
   /** 当前玩家本回合是否已摸过牌（用于校验 skip，支持刷新/重连后继续） */
   hasDrawnThisTurn: boolean;

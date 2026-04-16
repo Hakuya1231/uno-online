@@ -11,6 +11,13 @@ export type CreateRoomInput = {
   roomId?: string;
 };
 
+/**
+ * 创建房间时的公开房间文档初始化值。
+ *
+ * 约束：
+ * - draw_compare 模式下，创建阶段尚未选庄，因此 dealerId 为空字符串（由选庄阶段写入）
+ * - 其余牌局字段初始化为“未开局/不可操作”的默认值
+ */
 function makeInitialRoomDoc(input: CreateRoomInput): PublicRoomDoc {
   const host: Player = { id: input.hostId, name: input.hostName, isAI: false };
 
@@ -37,6 +44,7 @@ function makeInitialRoomDoc(input: CreateRoomInput): PublicRoomDoc {
 
     scores: { [input.hostId]: 0 },
     currentRound: 1,
+    roundWinnerId: null,
 
     hasDrawnThisTurn: false,
     roomVersion: 1,
@@ -48,16 +56,30 @@ function makeInitialRoomDoc(input: CreateRoomInput): PublicRoomDoc {
   };
 }
 
+/** 创建房间时的私密文档初始化值。 */
 function makeInitialPrivateData(): PrivateGameData {
   return { drawPile: [], dealerDrawPile: null };
 }
 
 export class RoomService {
+  /**
+   * RoomService 仅负责“房间级”业务：
+   * - 创建/加入
+   * - 开始游戏（推进到 dealing/choosing_dealer 并初始化选庄抽牌堆）
+   *
+   * 不负责发牌/出牌等牌局动作（由 GameService 负责）。
+   */
   constructor(
     private readonly repo: RoomRepo,
     private readonly genRoomId: RoomIdGenerator,
   ) {}
 
+  /**
+   * 创建房间。
+   *
+   * - 初始化 `rooms/{roomId}` 与 `private/gameData`
+   * - `roomId` 默认由注入的生成器产生（便于测试）
+   */
   async createRoom(input: CreateRoomInput): Promise<{ roomId: string }> {
     const roomId = input.roomId ?? this.genRoomId();
     const room = makeInitialRoomDoc({ ...input, roomId });
@@ -79,6 +101,7 @@ export class RoomService {
    * - 仅 status=waiting 允许加入
    * - 总人数最多 8
    * - players 顺序：房主第一、真人按加入时间、AI 永远排最后（因此真人加入要插入到第一个 AI 之前）
+   * - 幂等：若已在房间中则直接返回成功（不修改昵称）
    */
   async joinRoom(input: { roomId: string; playerId: string; name: string }): Promise<void> {
     await this.repo.runTransaction(async (tx) => {
@@ -118,7 +141,10 @@ export class RoomService {
    * 开始游戏（房间级）。
    *
    * - dealerMode=host：直接进入 dealing，庄家=房主
-   * - dealerMode=draw_compare：进入 choosing_dealer，且必须初始化 dealerDrawPile（10 张不重复数字牌）
+   * - dealerMode=draw_compare：进入 choosing_dealer，并由服务端初始化 dealerDrawPile（10 张不重复数字牌）
+   *
+   * 说明：
+   * - 108 张 drawPile 的初始化在发牌（deal）时由 GameService 负责
    */
   async startRoom(input: {
     roomId: string;

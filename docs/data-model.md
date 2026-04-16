@@ -74,6 +74,7 @@ rooms (集合)
 | handCounts | `Record<string, number>` | 各玩家手牌数量（不暴露内容） |
 | scores | `Record<string, number>` | 各玩家累计得分 |
 | currentRound | number | 当前局数 |
+| roundWinnerId | string \| null | 本局赢家玩家 ID（仅 finished 时为非 null；用于开始下一局时把赢家设为庄家） |
 | hasDrawnThisTurn | boolean | 当前玩家本回合是否已经摸过牌（用于刷新/重连后仍能正确校验 skip） |
 | roomVersion | number | 房间状态版本号（每次服务端成功写入状态变更 +1，用于并发控制与幂等） |
 | lastAction | `LastAction \| null` | 最近一次操作（仅记录牌局过程相关，用于 UI 提示/动效触发/调试） |

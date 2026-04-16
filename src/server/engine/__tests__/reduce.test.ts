@@ -24,6 +24,7 @@ function baseInput(overrides?: BaseInputOverrides): ReduceInput {
     dealerDrawResults: null,
     scores: { p1: 0, p2: 0 },
     currentRound: 1,
+    roundWinnerId: null,
     currentPlayerIndex: 0,
     direction: 1,
     discardPile: [{ type: "number", color: "red", value: 7 }],
@@ -257,6 +258,7 @@ describe("engine/reduce (minimal)", () => {
         hostId: "p1",
         currentRound: 3,
         dealerId: "p1",
+        roundWinnerId: "p2",
         discardPile: [{ type: "number", color: "red", value: 7 }],
         drawPileCount: 20,
         handCounts: { p1: 1, p2: 0 },
@@ -264,10 +266,11 @@ describe("engine/reduce (minimal)", () => {
       drawPile: [{ type: "number", color: "blue", value: 1 }],
     });
 
-    const out = reduce(input, { type: "NEXT_ROUND", playerId: "p1", winnerId: "p2" });
+    const out = reduce(input, { type: "NEXT_ROUND", playerId: "p1" });
     expect(out.room.status).toBe("dealing");
     expect(out.room.dealerId).toBe("p2");
     expect(out.room.currentRound).toBe(4);
+    expect(out.room.roundWinnerId).toBeNull();
     expect(out.room.discardPile).toEqual([]);
     expect(out.room.drawPileCount).toBe(0);
     expect(out.room.handCounts).toEqual({ p1: 0, p2: 0 });

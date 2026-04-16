@@ -27,8 +27,6 @@ export type EngineAction =
       type: "NEXT_ROUND";
       /** 发起者（通常为房主） */
       playerId: string;
-      /** 上一局赢家（下一局庄家） */
-      winnerId: string;
     }
   | {
       type: "END_GAME";
@@ -112,6 +110,8 @@ export type ReduceInput = {
     scores: Record<string, number>;
     /** 当前局数（从 1 开始） */
     currentRound: number;
+    /** 本局赢家（仅 finished 时应为非 null） */
+    roundWinnerId: string | null;
   };
   /**
    * 当前玩家的手牌（与 action.playerId 对应）。

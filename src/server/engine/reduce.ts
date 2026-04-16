@@ -189,12 +189,16 @@ export function reduce(input: ReduceInput, action: EngineAction): ReduceResult {
       if (room.status !== "finished") throw new Error("当前状态不允许开始下一局");
       if (action.playerId !== room.hostId) throw new Error("只有房主可以开始下一局");
 
-      const winnerExists = room.players.some((p) => p.id === action.winnerId);
-      if (!winnerExists) throw new Error("winnerId 不在玩家列表中");
+      const winnerId = room.roundWinnerId;
+      if (!winnerId) throw new Error("缺少 roundWinnerId，无法开始下一局");
 
-      nextRoom.dealerId = action.winnerId;
+      const winnerExists = room.players.some((p) => p.id === winnerId);
+      if (!winnerExists) throw new Error("roundWinnerId 不在玩家列表中");
+
+      nextRoom.dealerId = winnerId;
       nextRoom.currentRound = room.currentRound + 1;
       nextRoom.status = "dealing";
+      nextRoom.roundWinnerId = null;
 
       // 回合内状态重置（发牌后会覆盖 drawPileCount/handCounts/discardPile 等）
       nextRoom.discardPile = [];
@@ -212,14 +216,14 @@ export function reduce(input: ReduceInput, action: EngineAction): ReduceResult {
       nextRoom.handCounts = resetCounts;
 
       // 从新庄家下一位开始（进入 playing 后生效；这里先设置好，便于 UI 展示）
-      const dealerIndex = room.players.findIndex((p) => p.id === action.winnerId);
-      if (dealerIndex < 0) throw new Error("winnerId 庄家索引无效");
+      const dealerIndex = room.players.findIndex((p) => p.id === winnerId);
+      if (dealerIndex < 0) throw new Error("roundWinnerId 庄家索引无效");
       nextRoom.currentPlayerIndex = (dealerIndex + 1) % room.players.length;
 
       const lastAction: LastAction = {
         type: "next_round_started",
         by: action.playerId,
-        dealerId: action.winnerId,
+        dealerId: winnerId,
         currentRound: nextRoom.currentRound,
         at: now,
       };
@@ -279,6 +283,7 @@ export function reduce(input: ReduceInput, action: EngineAction): ReduceResult {
       nextRoom.direction = 1;
       nextRoom.pendingDraw = { count: 0, type: null };
       nextRoom.hasDrawnThisTurn = false;
+      nextRoom.roundWinnerId = null;
 
       // 从庄家下一位开始
       const dealerIndex = room.players.findIndex((p) => p.id === room.dealerId);
@@ -486,6 +491,7 @@ export function reduce(input: ReduceInput, action: EngineAction): ReduceResult {
       // 最小版：不在引擎里结算 scores；但可以标记 finished（后续 service 计算分数）
       if (nextHand.length === 0) {
         (nextRoom as unknown as { status: "finished" }).status = "finished";
+        nextRoom.roundWinnerId = action.playerId;
       }
 
       return {
