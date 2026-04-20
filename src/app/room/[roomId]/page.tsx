@@ -1,9 +1,11 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { postJson } from "@/client/api";
 import { useLocalSession } from "@/client/useLocalSession";
+import { saveNickname } from "@/client/localSession";
+import { NicknameInput } from "@/app/_components/NicknameInput";
 
 function getRoomIdFromParams(params: Record<string, string | string[]>) {
   const v = params.roomId;
@@ -18,6 +20,33 @@ export default function RoomPage() {
   const { session, ready } = useLocalSession();
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
+  const [nickname, setNickname] = useState<string>(session.nickname || "");
+
+  useEffect(() => {
+    // 允许从其他页面修改昵称后同步到这里
+    setNickname(session.nickname || "");
+  }, [session.nickname]);
+
+  const onJoin = useCallback(async () => {
+    const name = nickname.trim();
+    if (!name) {
+      setMsg("请先设置昵称");
+      return;
+    }
+    if (!roomId) return;
+
+    setBusy(true);
+    setMsg("");
+    try {
+      saveNickname(name);
+      await postJson("/api/room/join", { roomId, name });
+      setMsg("加入成功");
+    } catch (e) {
+      setMsg(`加入失败：${e instanceof Error ? e.message : "unknown error"}`);
+    } finally {
+      setBusy(false);
+    }
+  }, [nickname, roomId]);
 
   const onCopyLink = useCallback(async () => {
     try {
@@ -63,6 +92,12 @@ export default function RoomPage() {
 
       {/* 先按文档把页面骨架搭起来；玩家列表/AI 增删/实时订阅后续接入 */}
       <div style={{ display: "grid", gap: 12 }}>
+        <NicknameInput value={nickname} onChange={setNickname} disabled={busy} />
+
+        <button type="button" onClick={onJoin} disabled={busy || !roomId || !ready || nickname.trim().length === 0}>
+          加入房间
+        </button>
+
         <div style={{ opacity: 0.8 }}>
           说明：房间页后续会接 Firestore `onSnapshot` 展示玩家列表与房主操作。
         </div>

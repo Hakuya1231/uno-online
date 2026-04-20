@@ -1,42 +1,28 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import styles from "./page.module.css";
 
 import type { DealerMode } from "@/shared";
-import { loadLocalSession, saveNickname } from "@/client/localSession";
+import { loadLocalSession } from "@/client/localSession";
 import { postJson } from "@/client/api";
-import { randomChuunibyouNickname } from "@/client/nickname";
 import { useLocalSession } from "@/client/useLocalSession";
+import { NicknameInput } from "@/app/_components/NicknameInput";
 
 type CreateRoomResp = { roomId: string };
-
-function randomNickname() {
-  return randomChuunibyouNickname({ maxLen: 12 });
-}
 
 export default function HomePage() {
   const router = useRouter();
   const { session, ready } = useLocalSession();
 
   const initial = useMemo(() => loadLocalSession(), []);
-  const [nickname, setNickname] = useState(initial.nickname || randomNickname());
+  const [nickname, setNickname] = useState(initial.nickname || "");
   const [dealerMode, setDealerMode] = useState<DealerMode>("host");
   const [joinRoomId, setJoinRoomId] = useState("");
 
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
-
-  useEffect(() => {
-    saveNickname(nickname.trim());
-  }, [nickname]);
-
-  const onRandom = useCallback(() => {
-    const nn = randomNickname();
-    setNickname(nn);
-    saveNickname(nn);
-  }, []);
 
   const createRoom = useCallback(async () => {
     setBusy(true);
@@ -89,15 +75,7 @@ export default function HomePage() {
         </div>
 
         <div style={{ width: "100%", maxWidth: 520, display: "grid", gap: 12 }}>
-          <label style={{ display: "grid", gap: 6 }}>
-            <span>昵称</span>
-            <div style={{ display: "flex", gap: 8 }}>
-              <input value={nickname} onChange={(e) => setNickname(e.target.value)} />
-              <button type="button" onClick={onRandom} disabled={busy}>
-                随机
-              </button>
-            </div>
-          </label>
+          <NicknameInput value={nickname} onChange={setNickname} disabled={busy} />
 
           <label style={{ display: "grid", gap: 6 }}>
             <span>庄家方式</span>
