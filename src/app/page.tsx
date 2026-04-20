@@ -5,10 +5,10 @@ import { useRouter } from "next/navigation";
 import styles from "./page.module.css";
 
 import type { DealerMode } from "@/shared";
-import { useAutoAnonAuth } from "@/client/useAutoAnonAuth";
 import { loadLocalSession, saveNickname } from "@/client/localSession";
 import { postJson } from "@/client/api";
 import { randomChuunibyouNickname } from "@/client/nickname";
+import { useLocalSession } from "@/client/useLocalSession";
 
 type CreateRoomResp = { roomId: string };
 
@@ -18,7 +18,7 @@ function randomNickname() {
 
 export default function HomePage() {
   const router = useRouter();
-  const { ready, user, idToken, error } = useAutoAnonAuth();
+  const { session, ready } = useLocalSession();
 
   const initial = useMemo(() => loadLocalSession(), []);
   const [nickname, setNickname] = useState(initial.nickname || randomNickname());
@@ -52,7 +52,7 @@ export default function HomePage() {
     } finally {
       setBusy(false);
     }
-  }, [dealerMode, idToken, nickname, router]);
+  }, [dealerMode, nickname, router]);
 
   const joinRoom = useCallback(async () => {
     const roomId = joinRoomId.trim().toUpperCase();
@@ -71,7 +71,7 @@ export default function HomePage() {
     } finally {
       setBusy(false);
     }
-  }, [idToken, joinRoomId, nickname, router]);
+  }, [joinRoomId, nickname, router]);
 
   return (
     <div className={styles.page}>
@@ -79,11 +79,9 @@ export default function HomePage() {
         <h1>UNO Online</h1>
 
         <div style={{ opacity: 0.8 }}>
-          {error ? (
-            <span>登录错误：{error}</span>
-          ) : ready ? (
+          {ready ? (
             <span>
-              已登录：<code>{user?.uid}</code>
+              已登录：<code>{session.userId}</code>
             </span>
           ) : (
             <span>正在进入系统...</span>
@@ -130,7 +128,7 @@ export default function HomePage() {
           <button
             type="button"
             onClick={createRoom}
-            disabled={busy || !ready || !idToken || nickname.trim().length === 0}
+            disabled={busy || !ready || nickname.trim().length === 0}
           >
             创建房间
           </button>
@@ -144,7 +142,7 @@ export default function HomePage() {
           <button
             type="button"
             onClick={joinRoom}
-            disabled={busy || !ready || !idToken || nickname.trim().length === 0}
+            disabled={busy || !ready || nickname.trim().length === 0}
           >
             加入房间
           </button>

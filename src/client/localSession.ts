@@ -17,6 +17,10 @@ export type LocalSession = {
   nickname: string;
 };
 
+export function getSessionKeys() {
+  return { KEY_TOKEN, KEY_UID, KEY_NAME };
+}
+
 export function loadLocalSession(): Partial<LocalSession> {
   if (typeof window === "undefined") return {};
   return {

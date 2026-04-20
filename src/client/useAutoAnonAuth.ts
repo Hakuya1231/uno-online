@@ -30,6 +30,7 @@ export function useAutoAnonAuth() {
       const { idToken: t } = await syncAuthToLocalStorage(u);
       setIdToken(t);
       setReady(true);
+      window.dispatchEvent(new Event("uno:session"));
     });
     return () => unsub();
   }, [auth]);
@@ -49,8 +50,10 @@ export function useAutoAnonAuth() {
         setIdToken(t);
         setUser(cred.user);
         setReady(true);
+        window.dispatchEvent(new Event("uno:session"));
       } catch (e) {
         setError(e instanceof Error ? e.message : "匿名登录失败");
+        window.dispatchEvent(new Event("uno:session"));
       }
     })();
 

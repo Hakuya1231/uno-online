@@ -1,9 +1,9 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { loadLocalSession } from "@/client/localSession";
 import { postJson } from "@/client/api";
+import { useLocalSession } from "@/client/useLocalSession";
 
 function getRoomIdFromParams(params: Record<string, string | string[]>) {
   const v = params.roomId;
@@ -15,7 +15,7 @@ export default function RoomPage() {
   const params = useParams<Record<string, string | string[]>>();
   const roomId = getRoomIdFromParams(params).toUpperCase();
 
-  const session = useMemo(() => loadLocalSession(), []);
+  const { session, ready } = useLocalSession();
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
 
@@ -67,7 +67,7 @@ export default function RoomPage() {
           说明：房间页后续会接 Firestore `onSnapshot` 展示玩家列表与房主操作。
         </div>
 
-        <button onClick={onStart} disabled={busy || !roomId}>
+        <button onClick={onStart} disabled={busy || !roomId || !ready}>
           开始游戏
         </button>
 
