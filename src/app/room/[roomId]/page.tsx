@@ -61,6 +61,18 @@ export default function RoomPage() {
     return room.players.some((p) => p.id === session.userId);
   }, [room, session.userId]);
 
+  // 房主开始游戏后，所有已加入玩家都应自动进入游戏页
+  useEffect(() => {
+    if (!room) return;
+    if (!roomId) return;
+    if (!ready) return;
+    if (!hasJoined) return;
+
+    if (room.status !== "waiting") {
+      router.replace(`/game/${roomId}`);
+    }
+  }, [hasJoined, ready, room, roomId, router]);
+
   const onJoin = useCallback(async () => {
     const name = nickname.trim();
     if (!name) {
@@ -147,15 +159,17 @@ export default function RoomPage() {
 
             {!isHost ? (
               <>
-                <NicknameInput value={nickname} onChange={setNickname} disabled={busy} />
                 {!hasJoined ? (
-                  <button
-                    type="button"
-                    onClick={onJoin}
-                    disabled={busy || !roomId || !ready || nickname.trim().length === 0}
-                  >
-                    加入房间
-                  </button>
+                  <>
+                    <NicknameInput value={nickname} onChange={setNickname} disabled={busy} />
+                    <button
+                      type="button"
+                      onClick={onJoin}
+                      disabled={busy || !roomId || !ready || nickname.trim().length === 0}
+                    >
+                      加入房间
+                    </button>
+                  </>
                 ) : (
                   <div style={{ opacity: 0.8 }}>你已加入房间，等待房主开始游戏…</div>
                 )}
