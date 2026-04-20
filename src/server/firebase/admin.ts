@@ -16,7 +16,12 @@ export function getAdminFirestore() {
   if (getApps().length === 0) {
     const json = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
     if (json) {
-      initializeApp({ credential: cert(JSON.parse(json)) });
+      const sa = JSON.parse(json) as Record<string, unknown>;
+      // 兼容：某些环境变量粘贴会把换行变成字面量 "\\n"
+      if (typeof sa.private_key === "string") {
+        sa.private_key = sa.private_key.replace(/\\n/g, "\n");
+      }
+      initializeApp({ credential: cert(sa as any) });
     } else {
       // fallback: rely on application default credentials (ADC)
       initializeApp();
