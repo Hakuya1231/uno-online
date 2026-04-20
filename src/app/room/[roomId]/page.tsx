@@ -1,11 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { doc, onSnapshot } from "firebase/firestore";
 import { postJson } from "@/client/api";
 import { useLocalSession } from "@/client/useLocalSession";
-import { saveNickname } from "@/client/localSession";
 import { NicknameInput } from "@/app/_components/NicknameInput";
+import { getClientFirestore } from "@/client/firestore";
+import type { PublicRoomDoc } from "@/shared";
 
 function getRoomIdFromParams(params: Record<string, string | string[]>) {
   const v = params.roomId;
@@ -22,10 +24,42 @@ export default function RoomPage() {
   const [msg, setMsg] = useState("");
   const [nickname, setNickname] = useState<string>(session.nickname || "");
 
+  const [room, setRoom] = useState<PublicRoomDoc | null>(null);
+  const [roomError, setRoomError] = useState<string>("");
+
   useEffect(() => {
     // 允许从其他页面修改昵称后同步到这里
     setNickname(session.nickname || "");
   }, [session.nickname]);
+
+  useEffect(() => {
+    if (!roomId) return;
+    setRoomError("");
+    const db = getClientFirestore();
+    const ref = doc(db, "rooms", roomId);
+    const unsub = onSnapshot(
+      ref,
+      (snap) => {
+        if (!snap.exists()) {
+          setRoom(null);
+          setRoomError("房间不存在");
+          return;
+        }
+        setRoom(snap.data() as PublicRoomDoc);
+      },
+      (err) => {
+        setRoom(null);
+        setRoomError(err instanceof Error ? err.message : "订阅失败");
+      },
+    );
+    return () => unsub();
+  }, [roomId]);
+
+  const isHost = Boolean(room && session.userId && room.hostId === session.userId);
+  const hasJoined = useMemo(() => {
+    if (!room || !session.userId) return false;
+    return room.players.some((p) => p.id === session.userId);
+  }, [room, session.userId]);
 
   const onJoin = useCallback(async () => {
     const name = nickname.trim();
@@ -38,7 +72,6 @@ export default function RoomPage() {
     setBusy(true);
     setMsg("");
     try {
-      saveNickname(name);
       await postJson("/api/room/join", { roomId, name });
       setMsg("加入成功");
     } catch (e) {
@@ -90,21 +123,67 @@ export default function RoomPage() {
 
       <hr style={{ margin: "20px 0" }} />
 
-      {/* 先按文档把页面骨架搭起来；玩家列表/AI 增删/实时订阅后续接入 */}
       <div style={{ display: "grid", gap: 12 }}>
-        <NicknameInput value={nickname} onChange={setNickname} disabled={busy} />
+        {roomError ? <div style={{ whiteSpace: "pre-wrap" }}>房间订阅错误：{roomError}</div> : null}
 
-        <button type="button" onClick={onJoin} disabled={busy || !roomId || !ready || nickname.trim().length === 0}>
-          加入房间
-        </button>
+        {room ? (
+          <>
+            <div style={{ opacity: 0.8 }}>
+              庄家方式：{room.dealerMode === "host" ? "房主当庄" : "摸牌比大小"}
+            </div>
 
-        <div style={{ opacity: 0.8 }}>
-          说明：房间页后续会接 Firestore `onSnapshot` 展示玩家列表与房主操作。
-        </div>
+            <div>
+              <div style={{ fontWeight: 700, marginBottom: 8 }}>玩家列表</div>
+              <ol style={{ margin: 0, paddingLeft: 18, display: "grid", gap: 6 }}>
+                {room.players.map((p) => (
+                  <li key={p.id}>
+                    {p.name}{" "}
+                    {p.id === room.hostId ? <span style={{ opacity: 0.8 }}>(房主)</span> : null}{" "}
+                    {p.isAI ? <span style={{ opacity: 0.8 }}>[AI]</span> : null}
+                  </li>
+                ))}
+              </ol>
+            </div>
 
-        <button onClick={onStart} disabled={busy || !roomId || !ready}>
-          开始游戏
-        </button>
+            {!isHost ? (
+              <>
+                <NicknameInput value={nickname} onChange={setNickname} disabled={busy} />
+                {!hasJoined ? (
+                  <button
+                    type="button"
+                    onClick={onJoin}
+                    disabled={busy || !roomId || !ready || nickname.trim().length === 0}
+                  >
+                    加入房间
+                  </button>
+                ) : (
+                  <div style={{ opacity: 0.8 }}>你已加入房间，等待房主开始游戏…</div>
+                )}
+              </>
+            ) : (
+              <button
+                onClick={onStart}
+                disabled={
+                  busy ||
+                  !roomId ||
+                  !ready ||
+                  room.status !== "waiting" ||
+                  room.players.length < 2
+                }
+              >
+                开始游戏
+              </button>
+            )}
+
+            {isHost ? (
+              <div style={{ opacity: 0.7, fontSize: 12 }}>
+                开始条件：status=waiting 且人数≥2（后续会补“添加/移除 AI”）
+              </div>
+            ) : null}
+          </>
+        ) : (
+          <div style={{ opacity: 0.8 }}>正在加载房间信息…</div>
+        )}
 
         {msg ? <div style={{ whiteSpace: "pre-wrap" }}>{msg}</div> : null}
       </div>
