@@ -7,10 +7,13 @@
  */
 export async function authedFetch(
   input: RequestInfo | URL,
-  init: RequestInit & { idToken: string },
+  init: RequestInit & { idToken?: string },
 ): Promise<Response> {
+  const idToken = init.idToken ?? (typeof window === "undefined" ? "" : window.localStorage.getItem("uno:idToken") ?? "");
+  if (!idToken) throw new Error("缺少 idToken（请先完成匿名登录）");
+
   const headers = new Headers(init.headers);
-  headers.set("Authorization", `Bearer ${init.idToken}`);
+  headers.set("Authorization", `Bearer ${idToken}`);
 
   const { idToken: _ignored, ...rest } = init;
   return await fetch(input, { ...rest, headers });
