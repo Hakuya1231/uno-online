@@ -8,12 +8,12 @@ import type { DealerMode } from "@/shared";
 import { useAutoAnonAuth } from "@/client/useAutoAnonAuth";
 import { loadLocalSession, saveNickname } from "@/client/localSession";
 import { postJson } from "@/client/api";
+import { randomChuunibyouNickname } from "@/client/nickname";
 
 type CreateRoomResp = { roomId: string };
 
 function randomNickname() {
-  const n = Math.floor(Math.random() * 9000) + 1000;
-  return `玩家${n}`;
+  return randomChuunibyouNickname({ maxLen: 12 });
 }
 
 export default function HomePage() {
