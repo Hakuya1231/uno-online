@@ -157,6 +157,10 @@ export class RoomService {
       const privateData = await this.repo.getPrivateGameData(tx, input.roomId);
       if (!privateData) throw new Error("私密数据不存在（异常状态）");
 
+      if (room.players.length < 2) {
+        throw new Error("至少需要 2 名玩家才能开始游戏");
+      }
+
       // draw_compare：选庄抽牌堆由 service 初始化后注入引擎
       const dealerDrawPile =
         room.dealerMode === "draw_compare" ? createDealerDrawPile() : privateData.dealerDrawPile;

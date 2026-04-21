@@ -21,6 +21,7 @@ describe("RoomService", () => {
     const svc = new RoomService(repo, () => "r1");
     const { roomId } = await svc.createRoom({ hostId: "p1", hostName: "A", dealerMode: "host" });
 
+    await svc.joinRoom({ roomId, playerId: "p2", name: "B" });
     await svc.startRoom({ roomId, playerId: "p1" });
     const room = await repo.runTransaction((tx) => repo.getRoom(tx, roomId));
     expect(room?.status).toBe("dealing");
@@ -70,6 +71,7 @@ describe("RoomService", () => {
     const repo = new InMemoryRoomRepo();
     const svc = new RoomService(repo, () => "r1");
     const { roomId } = await svc.createRoom({ hostId: "p1", hostName: "A", dealerMode: "host" });
+    await svc.joinRoom({ roomId, playerId: "p2", name: "B" });
     await svc.startRoom({ roomId, playerId: "p1" });
     await expect(svc.joinRoom({ roomId, playerId: "p2", name: "B" })).rejects.toThrow(/不允许加入/);
   });
@@ -85,6 +87,7 @@ describe("RoomService", () => {
     const before = await repo.runTransaction((tx) => repo.getRoom(tx, roomId));
     expect(before?.dealerId).toBe("");
 
+    await svc.joinRoom({ roomId, playerId: "p2", name: "B" });
     await svc.startRoom({ roomId, playerId: "p1" });
 
     const room = await repo.runTransaction((tx) => repo.getRoom(tx, roomId));

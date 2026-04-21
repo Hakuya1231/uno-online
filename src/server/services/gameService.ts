@@ -388,8 +388,9 @@ export class GameService {
         throw new Error("质疑未产生 challenge_result（异常）");
       }
 
-      // 按 API 约定返回“被质疑者的手牌”，方便质疑者立即看到结算结果
-      const targetHandAfter = await this.repo.getHand(tx, input.roomId, targetId);
+      // Firestore Transaction 约束：读必须先于写。
+      // 这里不要在写入后再读 hands；直接基于引擎输出（handsPatch）推导被质疑者的最新手牌。
+      const targetHandAfter = out.handsPatch?.[targetId] ?? targetHand;
       return { result: out.lastAction.result, targetId: out.lastAction.targetId, targetHand: targetHandAfter };
     });
   }
