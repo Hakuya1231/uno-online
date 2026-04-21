@@ -336,11 +336,12 @@ export class GameService {
    * 返回：
    * - result：质疑成功/失败
    * - targetId：被质疑者玩家 ID
+   * - targetHand：被质疑者（上一位出 +4 的玩家）在质疑结算后的最新手牌（便于 API 直接返回给质疑者查看）
    */
   async challengeWildDrawFour(input: {
     roomId: string;
     playerId: string;
-  }): Promise<{ result: "success" | "fail"; targetId: string }> {
+  }): Promise<{ result: "success" | "fail"; targetId: string; targetHand: Card[] }> {
     return await this.repo.runTransaction(async (tx) => {
       const room = await this.repo.getRoom(tx, input.roomId);
       if (!room) throw new Error("房间不存在");
@@ -386,7 +387,10 @@ export class GameService {
       if (out.lastAction.type !== "challenge_result") {
         throw new Error("质疑未产生 challenge_result（异常）");
       }
-      return { result: out.lastAction.result, targetId: out.lastAction.targetId };
+
+      // 按 API 约定返回“被质疑者的手牌”，方便质疑者立即看到结算结果
+      const targetHandAfter = await this.repo.getHand(tx, input.roomId, targetId);
+      return { result: out.lastAction.result, targetId: out.lastAction.targetId, targetHand: targetHandAfter };
     });
   }
 }

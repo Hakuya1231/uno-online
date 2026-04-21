@@ -112,7 +112,10 @@ describe("GameService (in-memory)", () => {
     });
 
     const res = await gameSvc.challengeWildDrawFour({ roomId, playerId: "p1" });
-    expect(res).toEqual({ result: "fail", targetId: "p2" });
+    expect(res.result).toBe("fail");
+    expect(res.targetId).toBe("p2");
+    // 失败：质疑者 p1 摸 6 张；被质疑者 p2 不变（仍 1 张）
+    expect(res.targetHand).toHaveLength(1);
     const p1Hand = await repo.runTransaction((tx) => repo.getHand(tx, roomId, "p1"));
     expect(p1Hand).toHaveLength(7);
   });
