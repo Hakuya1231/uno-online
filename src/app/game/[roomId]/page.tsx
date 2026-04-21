@@ -8,6 +8,7 @@ import type { Card, PublicRoomDoc } from "@/shared";
 import { postJson } from "@/client/api";
 import { getClientFirestore } from "@/client/firestore";
 import { useLocalSession } from "@/client/useLocalSession";
+import { useFirebaseAuthUser } from "@/client/useFirebaseAuthUser";
 
 function getRoomIdFromParams(params: Record<string, string | string[]>) {
   const v = params.roomId;
@@ -54,6 +55,7 @@ export default function GamePage() {
   const params = useParams<Record<string, string | string[]>>();
   const roomId = getRoomIdFromParams(params).toUpperCase();
   const { session, ready } = useLocalSession();
+  const { user: authUser, ready: authReady } = useFirebaseAuthUser();
 
   const [room, setRoom] = useState<PublicRoomDoc | null>(null);
   const [roomError, setRoomError] = useState("");
@@ -94,10 +96,11 @@ export default function GamePage() {
   // 订阅“我的手牌”（若规则不允许读取，会提示但不阻塞其他 UI）
   useEffect(() => {
     if (!roomId) return;
-    if (!ready || !session.userId) return;
+    // Firestore Rules 的 request.auth 取决于 Firebase Auth SDK，而非 localStorage
+    if (!authReady || !authUser?.uid) return;
 
     const db = getClientFirestore();
-    const ref = doc(db, "rooms", roomId, "hands", session.userId);
+    const ref = doc(db, "rooms", roomId, "hands", authUser.uid);
     const unsub = onSnapshot(
       ref,
       (snap) => {
@@ -115,7 +118,7 @@ export default function GamePage() {
       },
     );
     return () => unsub();
-  }, [ready, roomId, session.userId]);
+  }, [authReady, authUser?.uid, roomId]);
 
   // 若房间还在 waiting，说明还没开始游戏，应回房间页
   useEffect(() => {
