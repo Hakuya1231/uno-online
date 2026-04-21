@@ -1,29 +1,518 @@
 "use client";
 
-import { useMemo } from "react";
-import { useParams } from "next/navigation";
-import { loadLocalSession } from "@/client/localSession";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { doc, onSnapshot } from "firebase/firestore";
+import type { Card, PublicRoomDoc } from "@/shared";
+
+import { postJson } from "@/client/api";
+import { getClientFirestore } from "@/client/firestore";
+import { useLocalSession } from "@/client/useLocalSession";
 
 function getRoomIdFromParams(params: Record<string, string | string[]>) {
   const v = params.roomId;
   return typeof v === "string" ? v : Array.isArray(v) ? v[0] ?? "" : "";
 }
 
+function cardText(card: Card): string {
+  const color =
+    card.color === "red"
+      ? "红"
+      : card.color === "yellow"
+        ? "黄"
+        : card.color === "green"
+          ? "绿"
+          : card.color === "blue"
+            ? "蓝"
+            : "无";
+  const face =
+    card.type === "number"
+      ? String(card.value ?? "?")
+      : card.type === "skip"
+        ? "Skip"
+        : card.type === "reverse"
+          ? "Rev"
+          : card.type === "draw_two"
+            ? "+2"
+            : card.type === "wild"
+              ? "W"
+              : "+4";
+  return `${color}${face}`;
+}
+
+function topDiscard(room: PublicRoomDoc): Card | null {
+  return room.discardPile.length > 0 ? room.discardPile[room.discardPile.length - 1]! : null;
+}
+
+function playerName(room: PublicRoomDoc, playerId: string) {
+  const p = room.players.find((x) => x.id === playerId);
+  return p ? p.name : playerId;
+}
+
 export default function GamePage() {
+  const router = useRouter();
   const params = useParams<Record<string, string | string[]>>();
   const roomId = getRoomIdFromParams(params).toUpperCase();
-  const session = useMemo(() => loadLocalSession(), []);
+  const { session, ready } = useLocalSession();
+
+  const [room, setRoom] = useState<PublicRoomDoc | null>(null);
+  const [roomError, setRoomError] = useState("");
+
+  const [hand, setHand] = useState<Card[] | null>(null);
+  const [handError, setHandError] = useState("");
+
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState("");
+
+  const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+  const [chosenColor, setChosenColor] = useState<"red" | "yellow" | "green" | "blue" | null>(null);
+
+  // 订阅公开房间
+  useEffect(() => {
+    if (!roomId) return;
+    const db = getClientFirestore();
+    const ref = doc(db, "rooms", roomId);
+    const unsub = onSnapshot(
+      ref,
+      (snap) => {
+        if (!snap.exists()) {
+          setRoom(null);
+          setRoomError("房间不存在");
+          return;
+        }
+        setRoomError("");
+        setRoom(snap.data() as PublicRoomDoc);
+      },
+      (err) => {
+        setRoom(null);
+        setRoomError(err instanceof Error ? err.message : "订阅失败");
+      },
+    );
+    return () => unsub();
+  }, [roomId]);
+
+  // 订阅“我的手牌”（若规则不允许读取，会提示但不阻塞其他 UI）
+  useEffect(() => {
+    if (!roomId) return;
+    if (!ready || !session.userId) return;
+
+    const db = getClientFirestore();
+    const ref = doc(db, "rooms", roomId, "hands", session.userId);
+    const unsub = onSnapshot(
+      ref,
+      (snap) => {
+        setHandError("");
+        if (!snap.exists()) {
+          setHand([]);
+          return;
+        }
+        const data = snap.data() as { cards?: Card[] };
+        setHand(Array.isArray(data.cards) ? data.cards : []);
+      },
+      (err) => {
+        setHand(null);
+        setHandError(err instanceof Error ? err.message : "订阅手牌失败");
+      },
+    );
+    return () => unsub();
+  }, [ready, roomId, session.userId]);
+
+  // 若房间还在 waiting，说明还没开始游戏，应回房间页
+  useEffect(() => {
+    if (!room) return;
+    if (room.status === "waiting") {
+      router.replace(`/room/${roomId}`);
+    }
+  }, [room, roomId, router]);
+
+  const isHost = Boolean(room && session.userId && room.hostId === session.userId);
+  const isDealer = Boolean(room && session.userId && room.dealerId === session.userId);
+  const hasJoined = Boolean(room && session.userId && room.players.some((p) => p.id === session.userId));
+
+  const doDrawForDealer = useCallback(async () => {
+    if (!roomId) return;
+    setBusy(true);
+    setMsg("");
+    try {
+      await postJson("/api/game/draw-for-dealer", { roomId });
+    } catch (e) {
+      setMsg(`摸牌失败：${e instanceof Error ? e.message : "unknown error"}`);
+    } finally {
+      setBusy(false);
+    }
+  }, [roomId]);
+
+  const doDeal = useCallback(async () => {
+    if (!roomId) return;
+    setBusy(true);
+    setMsg("");
+    try {
+      await postJson("/api/game/deal", { roomId });
+    } catch (e) {
+      setMsg(`发牌失败：${e instanceof Error ? e.message : "unknown error"}`);
+    } finally {
+      setBusy(false);
+    }
+  }, [roomId]);
+
+  const doDrawCard = useCallback(async () => {
+    if (!roomId) return;
+    setBusy(true);
+    setMsg("");
+    try {
+      await postJson("/api/game/draw-card", { roomId });
+    } catch (e) {
+      setMsg(`摸牌失败：${e instanceof Error ? e.message : "unknown error"}`);
+    } finally {
+      setBusy(false);
+    }
+  }, [roomId]);
+
+  const doSkip = useCallback(async () => {
+    if (!roomId) return;
+    setBusy(true);
+    setMsg("");
+    try {
+      await postJson("/api/game/skip", { roomId });
+    } catch (e) {
+      setMsg(`跳过失败：${e instanceof Error ? e.message : "unknown error"}`);
+    } finally {
+      setBusy(false);
+    }
+  }, [roomId]);
+
+  const doAccept = useCallback(async () => {
+    if (!roomId) return;
+    setBusy(true);
+    setMsg("");
+    try {
+      await postJson("/api/game/accept", { roomId });
+    } catch (e) {
+      setMsg(`接受失败：${e instanceof Error ? e.message : "unknown error"}`);
+    } finally {
+      setBusy(false);
+    }
+  }, [roomId]);
+
+  const doChallenge = useCallback(async () => {
+    if (!roomId) return;
+    setBusy(true);
+    setMsg("");
+    try {
+      const out = await postJson<{ hand: Card[]; result: "success" | "fail" }>("/api/game/challenge", { roomId });
+      // 质疑接口会返回“被质疑者手牌”，这里先用 msg 提示结果；手牌变化仍以 onSnapshot 为准
+      setMsg(`质疑结果：${out.result}（返回被质疑者手牌 ${out.hand.length} 张）`);
+    } catch (e) {
+      setMsg(`质疑失败：${e instanceof Error ? e.message : "unknown error"}`);
+    } finally {
+      setBusy(false);
+    }
+  }, [roomId]);
+
+  const doPlaySelected = useCallback(async () => {
+    if (!roomId) return;
+    if (selectedIndex === null) {
+      setMsg("请先选择一张手牌");
+      return;
+    }
+    setBusy(true);
+    setMsg("");
+    try {
+      await postJson("/api/game/play-card", { roomId, cardIndex: selectedIndex, chosenColor });
+      setSelectedIndex(null);
+      setChosenColor(null);
+    } catch (e) {
+      setMsg(`出牌失败：${e instanceof Error ? e.message : "unknown error"}`);
+    } finally {
+      setBusy(false);
+    }
+  }, [chosenColor, roomId, selectedIndex]);
+
+  const doNextRound = useCallback(async () => {
+    if (!roomId) return;
+    setBusy(true);
+    setMsg("");
+    try {
+      await postJson("/api/game/next-round", { roomId });
+    } catch (e) {
+      setMsg(`开始下一局失败：${e instanceof Error ? e.message : "unknown error"}`);
+    } finally {
+      setBusy(false);
+    }
+  }, [roomId]);
+
+  const doEnd = useCallback(async () => {
+    if (!roomId) return;
+    setBusy(true);
+    setMsg("");
+    try {
+      await postJson("/api/game/end", { roomId });
+      router.push("/");
+    } catch (e) {
+      setMsg(`结束游戏失败：${e instanceof Error ? e.message : "unknown error"}`);
+    } finally {
+      setBusy(false);
+    }
+  }, [roomId, router]);
+
+  // paused 倒计时
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 250);
+    return () => clearInterval(t);
+  }, []);
+  const pauseLeft =
+    room?.status === "paused" && typeof room.pauseUntil === "number" ? Math.max(0, room.pauseUntil - now) : 0;
+  const pauseLeftSec = Math.ceil(pauseLeft / 1000);
+
+  const currentPlayer =
+    room && room.players[room.currentPlayerIndex] ? room.players[room.currentPlayerIndex]! : null;
+  const isMyTurn = Boolean(room && currentPlayer && session.userId && currentPlayer.id === session.userId);
+
+  const selectedCard = hand && selectedIndex !== null ? hand[selectedIndex] ?? null : null;
+  const needsColor = Boolean(selectedCard && (selectedCard.type === "wild" || selectedCard.type === "wild_draw_four"));
+  useEffect(() => {
+    if (!needsColor) setChosenColor(null);
+  }, [needsColor]);
 
   return (
     <div style={{ maxWidth: 900, margin: "40px auto", padding: 16 }}>
-      <h1 style={{ marginBottom: 8 }}>游戏页</h1>
-      <div style={{ opacity: 0.8, marginBottom: 16 }}>
-        roomId：<code>{roomId}</code>，userId：<code>{session.userId || "未知"}</code>
+      <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+        <div>
+          <h1 style={{ marginBottom: 8 }}>UNO Online</h1>
+          <div style={{ opacity: 0.8 }}>
+            roomId：<code>{roomId}</code> userId：<code>{session.userId || "未知"}</code>
+          </div>
+          {room ? (
+            <div style={{ opacity: 0.8 }}>
+              状态：<code>{room.status}</code>
+            </div>
+          ) : null}
+        </div>
       </div>
 
-      <div style={{ opacity: 0.8 }}>
-        说明：这里会按 `docs/pages.md` 根据 room.status 切换视图（选庄/发牌/对战/暂停遮罩/结算）。
-      </div>
+      <hr style={{ margin: "16px 0" }} />
+
+      {roomError ? <div style={{ whiteSpace: "pre-wrap" }}>房间订阅错误：{roomError}</div> : null}
+      {handError ? <div style={{ whiteSpace: "pre-wrap", opacity: 0.8 }}>手牌订阅错误：{handError}</div> : null}
+      {msg ? <div style={{ whiteSpace: "pre-wrap" }}>{msg}</div> : null}
+
+      {!room ? <div style={{ opacity: 0.8 }}>正在加载…</div> : null}
+
+      {room && !hasJoined ? (
+        <div style={{ opacity: 0.8 }}>你尚未加入该房间，请回到房间页加入。</div>
+      ) : null}
+
+      {room && room.status === "choosing_dealer" ? (
+        <div style={{ display: "grid", gap: 12 }}>
+          <div style={{ fontWeight: 700 }}>选庄 - 摸牌比大小</div>
+          <div style={{ display: "grid", gap: 6 }}>
+            {room.players.map((p) => {
+              const c = room.dealerDrawResults?.[p.id] ?? null;
+              return (
+                <div key={p.id} style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <div style={{ width: 160 }}>{p.name}</div>
+                  <div style={{ opacity: 0.9 }}>
+                    {c ? <code>{cardText(c)}</code> : <span style={{ opacity: 0.7 }}>等待摸牌...</span>}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <button type="button" onClick={doDrawForDealer} disabled={busy || !ready}>
+            摸牌
+          </button>
+        </div>
+      ) : null}
+
+      {room && room.status === "dealing" ? (
+        <div style={{ display: "grid", gap: 12 }}>
+          <div>庄家：{playerName(room, room.dealerId)}</div>
+          {isDealer ? (
+            <button type="button" onClick={doDeal} disabled={busy || !ready}>
+              发牌
+            </button>
+          ) : (
+            <div style={{ opacity: 0.8 }}>等待庄家发牌...</div>
+          )}
+        </div>
+      ) : null}
+
+      {room && (room.status === "playing" || room.status === "paused") ? (
+        <div style={{ display: "grid", gap: 12, position: "relative" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+            <div>
+              第{room.currentRound}局 摸牌堆:{room.drawPileCount} 方向:{room.direction === 1 ? "→" : "←"} 轮到:
+              {currentPlayer ? currentPlayer.name : "（无）"}
+            </div>
+            <div style={{ opacity: 0.8 }}>
+              当前颜色：{room.chosenColor ? (room.chosenColor === "red" ? "红" : room.chosenColor === "yellow" ? "黄" : room.chosenColor === "green" ? "绿" : "蓝") : "（无）"}
+              {"  "}pending:{room.pendingDraw.type ?? "无"}/{room.pendingDraw.count}
+            </div>
+          </div>
+
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+            {room.players.map((p) => (
+              <div key={p.id} style={{ padding: 8, border: "1px solid #3333", borderRadius: 8, minWidth: 120 }}>
+                <div style={{ fontWeight: 700 }}>{p.name}</div>
+                <div style={{ opacity: 0.8 }}>{room.handCounts[p.id] ?? 0} 张</div>
+              </div>
+            ))}
+          </div>
+
+          <div style={{ padding: 12, border: "1px solid #3333", borderRadius: 8 }}>
+            <div style={{ opacity: 0.8, marginBottom: 8 }}>弃牌堆顶</div>
+            <div style={{ fontSize: 20, fontWeight: 700 }}>
+              {topDiscard(room) ? <code>{cardText(topDiscard(room)!)}</code> : "（无）"}
+            </div>
+          </div>
+
+          <div style={{ padding: 12, border: "1px solid #3333", borderRadius: 8 }}>
+            <div style={{ opacity: 0.8, marginBottom: 8 }}>我的手牌</div>
+            {hand === null ? (
+              <div style={{ opacity: 0.8 }}>（未能读取手牌；请检查 Firestore Rules 是否允许读取自己的 hands 文档）</div>
+            ) : (
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                {hand.map((c, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => {
+                      setSelectedIndex(idx);
+                      setMsg("");
+                    }}
+                    style={{
+                      padding: "6px 8px",
+                      borderRadius: 8,
+                      border: idx === selectedIndex ? "2px solid #111" : "1px solid #3336",
+                      background: idx === selectedIndex ? "#eee" : "white",
+                    }}
+                    disabled={busy}
+                  >
+                    {cardText(c)}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {needsColor ? (
+              <div style={{ marginTop: 10, display: "flex", gap: 8, flexWrap: "wrap" }}>
+                <span style={{ opacity: 0.8 }}>选颜色：</span>
+                {(["red", "yellow", "green", "blue"] as const).map((c) => (
+                  <button
+                    key={c}
+                    type="button"
+                    onClick={() => setChosenColor(c)}
+                    style={{
+                      padding: "4px 8px",
+                      borderRadius: 999,
+                      border: chosenColor === c ? "2px solid #111" : "1px solid #3336",
+                    }}
+                    disabled={busy}
+                  >
+                    {c === "red" ? "红" : c === "yellow" ? "黄" : c === "green" ? "绿" : "蓝"}
+                  </button>
+                ))}
+              </div>
+            ) : null}
+          </div>
+
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+            <button type="button" onClick={doPlaySelected} disabled={busy || !ready || !isMyTurn || selectedIndex === null || (needsColor && !chosenColor)}>
+              出牌
+            </button>
+            <button type="button" onClick={doDrawCard} disabled={busy || !ready || !isMyTurn}>
+              摸牌
+            </button>
+            <button type="button" onClick={doSkip} disabled={busy || !ready || !isMyTurn}>
+              跳过
+            </button>
+
+            {room.pendingDraw.count > 0 ? (
+              <>
+                <button type="button" onClick={doAccept} disabled={busy || !ready || !isMyTurn}>
+                  接受
+                </button>
+                {room.pendingDraw.type === "wild_draw_four" ? (
+                  <button type="button" onClick={doChallenge} disabled={busy || !ready || !isMyTurn}>
+                    质疑
+                  </button>
+                ) : null}
+              </>
+            ) : null}
+          </div>
+
+          {room.status === "paused" ? (
+            <div
+              style={{
+                position: "absolute",
+                inset: 0,
+                background: "rgba(0,0,0,0.6)",
+                color: "white",
+                display: "grid",
+                placeItems: "center",
+                borderRadius: 12,
+                padding: 16,
+              }}
+            >
+              <div style={{ textAlign: "center" }}>
+                <div style={{ fontSize: 18, fontWeight: 700 }}>
+                  {room.disconnectedPlayerId ? `${playerName(room, room.disconnectedPlayerId)} 已断线` : "已暂停"}
+                </div>
+                <div style={{ opacity: 0.9, marginTop: 6 }}>等待重连... {pauseLeftSec}s</div>
+              </div>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+
+      {room && room.status === "finished" ? (
+        <div style={{ display: "grid", gap: 12 }}>
+          <div style={{ fontWeight: 700 }}>
+            第{room.currentRound}局结算 胜者：{room.roundWinnerId ? playerName(room, room.roundWinnerId) : "（未知）"}
+          </div>
+
+          <table style={{ borderCollapse: "collapse", width: "100%" }}>
+            <thead>
+              <tr>
+                <th style={{ textAlign: "left", borderBottom: "1px solid #3333", padding: 8 }}>玩家</th>
+                <th style={{ textAlign: "left", borderBottom: "1px solid #3333", padding: 8 }}>剩余手牌</th>
+                <th style={{ textAlign: "left", borderBottom: "1px solid #3333", padding: 8 }}>累计</th>
+              </tr>
+            </thead>
+            <tbody>
+              {room.players.map((p) => (
+                <tr key={p.id}>
+                  <td style={{ padding: 8, borderBottom: "1px solid #3331" }}>{p.name}</td>
+                  <td style={{ padding: 8, borderBottom: "1px solid #3331" }}>
+                    {room.handCounts[p.id] ?? 0} 张
+                  </td>
+                  <td style={{ padding: 8, borderBottom: "1px solid #3331" }}>{room.scores[p.id] ?? 0}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+            <button type="button" onClick={doNextRound} disabled={busy || !ready || !isHost}>
+              开始下一局
+            </button>
+            <button type="button" onClick={doEnd} disabled={busy || !ready || !isHost}>
+              结束游戏
+            </button>
+          </div>
+          {!isHost ? <div style={{ opacity: 0.8 }}>仅房主可开始下一局或结束游戏。</div> : null}
+        </div>
+      ) : null}
+
+      {room && room.status === "ended" ? (
+        <div style={{ display: "grid", gap: 12 }}>
+          <div style={{ fontWeight: 700 }}>房间已结束</div>
+          <button type="button" onClick={() => router.push("/")}>
+            返回首页
+          </button>
+        </div>
+      ) : null}
     </div>
   );
 }
