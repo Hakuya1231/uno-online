@@ -69,6 +69,10 @@ export default function HomePage() {
           {ready ? <span>已进入系统</span> : <span>正在进入系统...</span>}
         </div>
 
+        <div style={{ fontSize: 14, opacity: 0.8 }}>
+          <a href="/ui-lab/animal-island">查看 Animal Island UI 最小验证页</a>
+        </div>
+
         <div style={{ width: "100%", maxWidth: 520, display: "grid", gap: 12 }}>
           <NicknameInput value={nickname} onChange={setNickname} disabled={busy} />
 
