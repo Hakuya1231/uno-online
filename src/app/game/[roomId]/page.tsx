@@ -250,15 +250,29 @@ export default function GamePage() {
 
   // 选庄结果展示：最后一人摸完后延迟几秒再进入发牌（避免看不到结果）
   const [dealerRevealUntil, setDealerRevealUntil] = useState<number | null>(null);
+  const [dealerRevealShownKey, setDealerRevealShownKey] = useState<string | null>(null);
+  const dealerRevealKey = useMemo(() => {
+    if (!room) return null;
+    if (room.dealerMode !== "draw_compare") return null;
+    if (room.status !== "dealing") return null;
+    if (!room.dealerDrawResults) return null;
+    if (Object.keys(room.dealerDrawResults).length < room.players.length) return null;
+
+    const resultsKey = room.players
+      .map((p) => {
+        const c = room.dealerDrawResults?.[p.id];
+        return c ? `${p.id}:${c.type}:${c.color ?? "null"}:${c.value ?? "null"}` : `${p.id}:pending`;
+      })
+      .join("|");
+
+    return `${room.currentRound}:${room.dealerId}:${resultsKey}`;
+  }, [room]);
   useEffect(() => {
-    if (!room) return;
-    if (room.dealerMode !== "draw_compare") return;
-    if (room.status !== "dealing") return;
-    if (!room.dealerDrawResults) return;
-    if (Object.keys(room.dealerDrawResults).length < room.players.length) return;
-    if (dealerRevealUntil !== null) return;
+    if (!dealerRevealKey) return;
+    if (dealerRevealShownKey === dealerRevealKey) return;
     setDealerRevealUntil(Date.now() + 2000);
-  }, [dealerRevealUntil, room]);
+    setDealerRevealShownKey(dealerRevealKey);
+  }, [dealerRevealKey, dealerRevealShownKey]);
   useEffect(() => {
     if (dealerRevealUntil === null) return;
     if (now >= dealerRevealUntil) setDealerRevealUntil(null);
@@ -268,6 +282,10 @@ export default function GamePage() {
     if (!room) return;
     if (room.status !== "dealing" && dealerRevealUntil !== null) setDealerRevealUntil(null);
   }, [dealerRevealUntil, room]);
+  useEffect(() => {
+    setDealerRevealUntil(null);
+    setDealerRevealShownKey(null);
+  }, [roomId]);
 
   const currentPlayer =
     room && room.players[room.currentPlayerIndex] ? room.players[room.currentPlayerIndex]! : null;
@@ -279,17 +297,11 @@ export default function GamePage() {
     if (!needsColor) setChosenColor(null);
   }, [needsColor]);
 
-  const shouldDealerReveal =
-    Boolean(
-      room &&
-        room.dealerMode === "draw_compare" &&
-        room.status === "dealing" &&
-        room.dealerDrawResults &&
-        Object.keys(room.dealerDrawResults).length >= room.players.length,
-    );
-  // 关键：当满足“应展示”但计时还没初始化（dealerRevealUntil===null）时，也先展示，避免闪到“等待发牌”
+  const shouldDealerReveal = Boolean(dealerRevealKey);
+  // 同一批选庄结果只展示一次；首次满足条件但计时尚未落地时也先显示，避免闪到“等待发牌”。
   const showDealerReveal = Boolean(
-    room && shouldDealerReveal && (dealerRevealUntil === null || now < dealerRevealUntil),
+    dealerRevealKey &&
+      (dealerRevealShownKey !== dealerRevealKey || (dealerRevealUntil !== null && now < dealerRevealUntil)),
   );
   const dealerRevealLeftSec =
     dealerRevealUntil !== null ? Math.max(0, Math.ceil((dealerRevealUntil - now) / 1000)) : 0;
