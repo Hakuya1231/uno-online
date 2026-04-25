@@ -1,14 +1,19 @@
 "use client";
 
+import "animal-island-ui/style";
+
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { doc, onSnapshot } from "firebase/firestore";
+import { Button, Divider, Footer, Input } from "animal-island-ui";
 import { postJson } from "@/client/api";
 import { useLocalSession } from "@/client/useLocalSession";
-import { NicknameInput } from "@/app/_components/NicknameInput";
 import { getClientFirestore } from "@/client/firestore";
 import type { PublicRoomDoc } from "@/shared";
-import { DEALER_MODE_ZH } from "@/client/uiText";
+import { randomChuunibyouNickname } from "@/client/nickname";
+import { saveNickname } from "@/client/localSession";
+import { DEALER_MODE_ZH, ROOM_STATUS_ZH } from "@/client/uiText";
+import styles from "./page.module.css";
 
 function getRoomIdFromParams(params: Record<string, string | string[]>) {
   const v = params.roomId;
@@ -61,6 +66,14 @@ export default function RoomPage() {
     if (!room || !session.userId) return false;
     return room.players.some((p) => p.id === session.userId);
   }, [room, session.userId]);
+  const canStart = Boolean(
+    room &&
+      !busy &&
+      roomId &&
+      ready &&
+      room.status === "waiting" &&
+      room.players.length >= 2,
+  );
 
   // 房主开始游戏后，所有已加入玩家都应自动进入游戏页
   useEffect(() => {
@@ -94,6 +107,12 @@ export default function RoomPage() {
     }
   }, [nickname, roomId]);
 
+  const onRandomNickname = useCallback(() => {
+    const next = randomChuunibyouNickname({ maxLen: 12 });
+    setNickname(next);
+    saveNickname(next);
+  }, []);
+
   const onCopyLink = useCallback(async () => {
     try {
       await navigator.clipboard.writeText(`${window.location.origin}/room/${roomId}`);
@@ -118,95 +137,157 @@ export default function RoomPage() {
   }, [roomId, router]);
 
   return (
-    <div
-      style={{
-        width: "100%",
-        minHeight: "100vh",
-        boxSizing: "border-box",
-        maxWidth: 760,
-        margin: "40px auto",
-        padding: 16,
-      }}
-    >
-      <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
-        <div>
-          <div style={{ fontSize: 12, opacity: 0.7 }}>房间号</div>
-          <div style={{ fontSize: 24, fontWeight: 700 }}>{roomId}</div>
-          <div style={{ fontSize: 12, opacity: 0.7 }}>
-            我的昵称：<code>{session.nickname || "未设置"}</code>
+    <div className={styles.page}>
+      <main className={styles.shell}>
+        <section className={styles.panel}>
+          <div className={styles.header}>
+            <div className={styles.titleRow}>
+              <div>
+                <h1 className={styles.title}>白夜大小姐的UNO</h1>
+                <div className={styles.roomId}>
+                  房间号
+                  <span className={styles.roomCode}>{roomId}</span>
+                </div>
+              </div>
+              <Button type="default" onClick={onCopyLink} disabled={!roomId}>
+                复制链接
+              </Button>
+            </div>
+
+            {room ? (
+              <div className={styles.metaGrid}>
+                <div className={styles.metaCard}>
+                  <span className={styles.metaLabel}>房间状态</span>
+                  <span className={styles.metaValue}>{ROOM_STATUS_ZH[room.status]}</span>
+                </div>
+                <div className={styles.metaCard}>
+                  <span className={styles.metaLabel}>庄家方式</span>
+                  <span className={styles.metaValue}>{DEALER_MODE_ZH[room.dealerMode]}</span>
+                </div>
+                <div className={styles.metaCard}>
+                  <span className={styles.metaLabel}>玩家人数</span>
+                  <span className={styles.metaValue}>{room.players.length} 人</span>
+                </div>
+                <div className={styles.metaCard}>
+                  <span className={styles.metaLabel}>我的昵称</span>
+                  <span className={styles.metaValue}>{session.nickname || "未设置"}</span>
+                </div>
+              </div>
+            ) : (
+              <div className={styles.metaGrid}>
+                <div className={styles.metaCard}>
+                  <span className={styles.metaLabel}>房间状态</span>
+                  <span className={styles.metaValue}>{roomError ? "加载失败" : "正在加载"}</span>
+                </div>
+                <div className={styles.metaCard}>
+                  <span className={styles.metaLabel}>我的昵称</span>
+                  <span className={styles.metaValue}>{session.nickname || "未设置"}</span>
+                </div>
+              </div>
+            )}
           </div>
-        </div>
-        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          <button onClick={onCopyLink} disabled={!roomId}>
-            复制链接
-          </button>
-        </div>
-      </div>
 
-      <hr style={{ margin: "20px 0" }} />
+          <Divider type="wave-yellow" />
 
-      <div style={{ display: "grid", gap: 12 }}>
-        {roomError ? <div style={{ whiteSpace: "pre-wrap" }}>房间订阅错误：{roomError}</div> : null}
+          {roomError ? <div className={styles.message}>房间订阅错误：{roomError}</div> : null}
 
-        {room ? (
-          <>
-            <div style={{ opacity: 0.8 }}>
-              庄家方式：{DEALER_MODE_ZH[room.dealerMode]}
-            </div>
+          {room ? (
+            <>
+              <section className={styles.section}>
+                <div className={styles.sectionTitle}>玩家列表</div>
+                <ul className={styles.playerList}>
+                  {room.players.map((p) => (
+                    <li key={p.id} className={styles.playerItem}>
+                      <div className={styles.playerMain}>
+                        <span className={styles.playerName}>{p.name}</span>
+                      </div>
+                      <div className={styles.badges}>
+                        {p.id === session.userId ? <span className={styles.badge}>我</span> : null}
+                        {p.id === room.hostId ? <span className={styles.badge}>房主</span> : null}
+                        {p.isAI ? <span className={styles.badge}>AI</span> : null}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </section>
 
-            <div>
-              <div style={{ fontWeight: 700, marginBottom: 8 }}>玩家列表</div>
-              <ol style={{ margin: 0, paddingLeft: 18, display: "grid", gap: 6 }}>
-                {room.players.map((p) => (
-                  <li key={p.id}>
-                    {p.name}{" "}
-                    {p.id === room.hostId ? <span style={{ opacity: 0.8 }}>(房主)</span> : null}{" "}
-                    {p.isAI ? <span style={{ opacity: 0.8 }}>[AI]</span> : null}
-                  </li>
-                ))}
-              </ol>
-            </div>
+              <Divider type="wave-yellow" />
 
-            {!isHost ? (
-              <>
-                {!hasJoined ? (
-                  <>
-                    <NicknameInput value={nickname} onChange={setNickname} disabled={busy} />
-                    <button
-                      type="button"
+              {room.status !== "waiting" ? (
+                <div className={styles.note}>
+                  {hasJoined ? "房间已进入下一阶段，正在为你跳转到对局页面…" : `当前房间状态：${ROOM_STATUS_ZH[room.status]}`}
+                </div>
+              ) : !isHost ? (
+                !hasJoined ? (
+                  <div className={styles.actionGroup}>
+                    <div className={styles.fieldGroup}>
+                      <span className={styles.fieldLabel}>昵称</span>
+                      <div className={styles.inputRow}>
+                        <Input
+                          value={nickname}
+                          onChange={(e) => {
+                            setNickname(e.target.value);
+                            saveNickname(e.target.value.trim());
+                          }}
+                          placeholder="请输入"
+                          allowClear
+                          onClear={() => {
+                            setNickname("");
+                            saveNickname("");
+                          }}
+                          disabled={busy}
+                          maxLength={12}
+                        />
+                        <Button type="default" onClick={onRandomNickname} disabled={busy}>
+                          随机
+                        </Button>
+                      </div>
+                    </div>
+                    <Button
+                      type="primary"
+                      block
+                      size="large"
                       onClick={onJoin}
+                      loading={busy}
                       disabled={busy || !roomId || !ready || nickname.trim().length === 0}
                     >
                       加入房间
-                    </button>
-                  </>
+                    </Button>
+                  </div>
                 ) : (
-                  <div style={{ opacity: 0.8 }}>你已加入房间，等待房主开始游戏…</div>
-                )}
-              </>
-            ) : (
-              <button
-                onClick={onStart}
-                disabled={
-                  busy ||
-                  !roomId ||
-                  !ready ||
-                  room.status !== "waiting" ||
-                  room.players.length < 2
-                }
-              >
-                开始游戏
-              </button>
-            )}
+                  <div className={styles.note}>你已加入房间，等待房主开始游戏…</div>
+                )
+              ) : (
+                <div className={styles.actionGroup}>
+                  {!canStart ? (
+                    <div className={styles.note}>
+                      {room.players.length < 2 ? "至少需要 2 名玩家才能开始游戏。" : "房间暂时不能开始，请稍候。"}
+                    </div>
+                  ) : null}
+                  <Button
+                    type="primary"
+                    block
+                    size="large"
+                    onClick={onStart}
+                    loading={busy}
+                    disabled={!canStart}
+                  >
+                    开始游戏
+                  </Button>
+                </div>
+              )}
+            </>
+          ) : (
+            <div className={styles.note}>正在加载房间信息…</div>
+          )}
 
-            {/* 房主提示行按设计图移除 */}
-          </>
-        ) : (
-          <div style={{ opacity: 0.8 }}>正在加载房间信息…</div>
-        )}
+          {msg ? <div className={styles.message}>{msg}</div> : null}
+        </section>
 
-        {msg ? <div style={{ whiteSpace: "pre-wrap" }}>{msg}</div> : null}
-      </div>
+        <section className={styles.footerBlock}>
+          <Footer type="tree" />
+        </section>
+      </main>
     </div>
   );
 }

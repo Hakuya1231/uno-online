@@ -1,0 +1,206 @@
+.page {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top left, rgba(255, 244, 201, 0.95), transparent 28%),
+    radial-gradient(circle at top right, rgba(144, 214, 192, 0.38), transparent 34%),
+    linear-gradient(180deg, #f6f3e8 0%, #eef7f0 54%, #e5f1e8 100%);
+}
+
+.shell {
+  width: 100%;
+  max-width: 480px;
+  min-height: 100dvh;
+  margin: 0 auto;
+  padding: 18px 14px 8px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.panel {
+  border: 2px solid rgba(115, 96, 66, 0.16);
+  border-radius: 30px;
+  background: rgba(255, 252, 246, 0.88);
+  box-shadow: 0 20px 50px rgba(82, 71, 43, 0.09);
+  backdrop-filter: blur(10px);
+  padding: 22px 18px 18px;
+  display: grid;
+  gap: 14px;
+}
+
+.header {
+  display: grid;
+  gap: 10px;
+}
+
+.titleRow {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: start;
+}
+
+.title {
+  font-size: 32px;
+  line-height: 1.08;
+  color: #3d4e35;
+}
+
+.roomId {
+  font-size: 14px;
+  line-height: 1.5;
+  color: #6d776b;
+}
+
+.roomCode {
+  display: inline-block;
+  margin-left: 6px;
+  color: #6f5231;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.metaGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.metaCard {
+  padding: 12px 14px;
+  border-radius: 18px;
+  background: #f4efdf;
+  color: #674f33;
+}
+
+.metaLabel {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  opacity: 0.7;
+}
+
+.metaValue {
+  font-size: 14px;
+  line-height: 1.5;
+  font-weight: 700;
+}
+
+.section {
+  display: grid;
+  gap: 8px;
+}
+
+.sectionTitle {
+  font-size: 13px;
+  font-weight: 700;
+  color: #5f6d5d;
+}
+
+.playerList {
+  list-style: none;
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+}
+
+.playerItem {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: center;
+  padding: 12px 14px;
+  border-radius: 18px;
+  background: rgba(244, 239, 223, 0.9);
+}
+
+.playerMain {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  min-width: 0;
+}
+
+.playerName {
+  font-size: 14px;
+  font-weight: 700;
+  color: #594123;
+  word-break: break-all;
+}
+
+.badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.badge {
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: #fff5cf;
+  color: #7b6742;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.fieldGroup {
+  display: grid;
+  gap: 8px;
+}
+
+.fieldLabel {
+  font-size: 13px;
+  font-weight: 700;
+  color: #5f6d5d;
+}
+
+.inputRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.actionGroup {
+  display: grid;
+  gap: 8px;
+}
+
+.note {
+  padding: 12px 14px;
+  border-radius: 18px;
+  background: #f4efdf;
+  color: #6c664d;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.message {
+  padding: 10px 14px;
+  border-radius: 18px;
+  background: #fff1e7;
+  color: #9b4f35;
+  font-size: 13px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+.footerBlock {
+  padding-bottom: 2px;
+}
+
+@media (max-width: 640px) {
+  .panel {
+    border-radius: 24px;
+  }
+
+  .title {
+    font-size: 28px;
+  }
+}
