@@ -9,7 +9,9 @@ import styles from "./page.module.css";
 
 import type { DealerMode } from "@/shared";
 import { loadLocalSession } from "@/client/localSession";
+import { randomChuunibyouNickname } from "@/client/nickname";
 import { postJson } from "@/client/api";
+import { saveNickname } from "@/client/localSession";
 import { useLocalSession } from "@/client/useLocalSession";
 import { DEALER_MODE_ZH } from "@/client/uiText";
 
@@ -26,6 +28,12 @@ export default function HomePage() {
 
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
+
+  const onRandomNickname = useCallback(() => {
+    const next = randomChuunibyouNickname({ maxLen: 12 });
+    setNickname(next);
+    saveNickname(next);
+  }, []);
 
   const createRoom = useCallback(async () => {
     setBusy(true);
@@ -65,115 +73,100 @@ export default function HomePage() {
   return (
     <div className={styles.page}>
       <main className={styles.shell}>
-        <section className={styles.hero}>
-          <div className={styles.introPanel}>
-            <span className={styles.eyebrow}>UNO Online</span>
-
-            <div className={styles.metaRow}>
-              <div className={styles.metaCard}>
-                <span className={styles.metaLabel}>系统状态</span>
-                <span className={styles.metaValue}>{ready ? "已进入系统" : "正在进入系统..."}</span>
-              </div>
-              <div className={styles.metaCard}>
-                <span className={styles.metaLabel}>昵称</span>
-                <span className={styles.metaValue}>{nickname.trim() || "等待输入"}</span>
-              </div>
-              <div className={styles.metaCard}>
-                <span className={styles.metaLabel}>选庄方式</span>
-                <span className={styles.metaValue}>{DEALER_MODE_ZH[dealerMode]}</span>
-              </div>
-            </div>
-
-            <Divider type="wave-yellow" />
+        <section className={styles.formPanel}>
+          <div className={styles.panelHeader}>
+            <h1 className={styles.panelTitle}>UNO Online</h1>
+            <p className={styles.panelStatus}>{ready ? "已进入系统" : "正在进入系统..."}</p>
           </div>
 
-          <div className={styles.formPanel}>
-            <div className={styles.panelHeader}>
-              <h2 className={styles.panelTitle}>开始游戏</h2>
-              <p className={styles.panelSubtitle}>输入昵称后就可以创建房间，或者直接加入朋友发来的房间号。</p>
-            </div>
-
-            <div className={styles.fieldGroup}>
-              <span className={styles.fieldLabel}>你的昵称</span>
+          <div className={styles.fieldGroup}>
+            <span className={styles.fieldLabel}>昵称</span>
+            <div className={styles.inputRow}>
               <Input
                 value={nickname}
-                onChange={(e) => setNickname(e.target.value)}
-                placeholder="例如 小熊维尼"
+                onChange={(e) => {
+                  setNickname(e.target.value);
+                  saveNickname(e.target.value.trim());
+                }}
+                placeholder="请输入"
                 allowClear
-                onClear={() => setNickname("")}
+                onClear={() => {
+                  setNickname("");
+                  saveNickname("");
+                }}
                 disabled={busy}
+                maxLength={12}
               />
-            </div>
-
-            <div className={styles.fieldGroup}>
-              <span className={styles.fieldLabel}>庄家方式</span>
-              <div className={styles.modeRow}>
-                <Button
-                  type={dealerMode === "host" ? "primary" : "default"}
-                  onClick={() => setDealerMode("host")}
-                  disabled={busy}
-                >
-                  {DEALER_MODE_ZH.host}
-                </Button>
-                <Button
-                  type={dealerMode === "draw_compare" ? "primary" : "default"}
-                  onClick={() => setDealerMode("draw_compare")}
-                  disabled={busy}
-                >
-                  {DEALER_MODE_ZH.draw_compare}
-                </Button>
-              </div>
-            </div>
-
-            <div className={styles.actionRow}>
-              <Button
-                type="primary"
-                block
-                size="large"
-                onClick={createRoom}
-                loading={busy}
-                disabled={!ready || nickname.trim().length === 0}
-              >
-                创建房间
+              <Button type="default" onClick={onRandomNickname} disabled={busy}>
+                随机
               </Button>
             </div>
-
-            <Divider type="line-teal" />
-
-            <div className={styles.fieldGroup}>
-              <span className={styles.fieldLabel}>房间号</span>
-              <Input
-                value={joinRoomId}
-                onChange={(e) => setJoinRoomId(e.target.value.toUpperCase())}
-                placeholder="例如 ABC123"
-                allowClear
-                onClear={() => setJoinRoomId("")}
-                disabled={busy}
-              />
-            </div>
-
-            <div className={styles.actionRow}>
-              <Button
-                type="default"
-                block
-                size="large"
-                onClick={joinRoom}
-                loading={busy}
-                disabled={!ready || nickname.trim().length === 0}
-              >
-                加入房间
-              </Button>
-            </div>
-
-            {msg ? <div className={styles.message}>{msg}</div> : null}
           </div>
+
+          <div className={styles.fieldGroup}>
+            <span className={styles.fieldLabel}>庄家方式</span>
+            <div className={styles.modeRow}>
+              <Button
+                type={dealerMode === "host" ? "primary" : "default"}
+                onClick={() => setDealerMode("host")}
+                disabled={busy}
+              >
+                {DEALER_MODE_ZH.host}
+              </Button>
+              <Button
+                type={dealerMode === "draw_compare" ? "primary" : "default"}
+                onClick={() => setDealerMode("draw_compare")}
+                disabled={busy}
+              >
+                {DEALER_MODE_ZH.draw_compare}
+              </Button>
+            </div>
+          </div>
+
+          <div className={styles.actionRow}>
+            <Button
+              type="primary"
+              block
+              size="large"
+              onClick={createRoom}
+              loading={busy}
+              disabled={!ready || nickname.trim().length === 0}
+            >
+              创建房间
+            </Button>
+          </div>
+
+          <Divider type="line-teal" />
+
+          <div className={styles.fieldGroup}>
+            <span className={styles.fieldLabel}>房间号</span>
+            <Input
+              value={joinRoomId}
+              onChange={(e) => setJoinRoomId(e.target.value.toUpperCase())}
+              placeholder="例如 ABC123"
+              allowClear
+              onClear={() => setJoinRoomId("")}
+              disabled={busy}
+            />
+          </div>
+
+          <div className={styles.actionRow}>
+            <Button
+              type="default"
+              block
+              size="large"
+              onClick={joinRoom}
+              loading={busy}
+              disabled={!ready || nickname.trim().length === 0}
+            >
+              加入房间
+            </Button>
+          </div>
+
+          {msg ? <div className={styles.message}>{msg}</div> : null}
         </section>
 
         <section className={styles.footerBlock}>
-          <div className={styles.footerText}>
-            <span>UNO Online</span>
-            <span>创建房间、加入房间，马上开始一局。</span>
-          </div>
           <Footer type="tree" />
         </section>
       </main>
