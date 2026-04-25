@@ -75,7 +75,7 @@ export default function HomePage() {
       <main className={styles.shell}>
         <section className={styles.formPanel}>
           <div className={styles.panelHeader}>
-            <h1 className={styles.panelTitle}>UNO Online</h1>
+            <h1 className={styles.panelTitle}>白夜大小姐的UNO</h1>
             <p className={styles.panelStatus}>{ready ? "已进入系统" : "正在进入系统..."}</p>
           </div>
 
@@ -136,7 +136,7 @@ export default function HomePage() {
             </Button>
           </div>
 
-          <Divider type="line-teal" />
+          <Divider type="wave-yellow" />
 
           <div className={styles.fieldGroup}>
             <span className={styles.fieldLabel}>房间号</span>
