@@ -123,6 +123,7 @@
   border-radius: 22px;
   background: linear-gradient(180deg, #fff9ea 0%, #f4efdf 100%);
   color: #674f33;
+  min-height: 100%;
 }
 
 .discardTitle {
@@ -315,8 +316,8 @@
 }
 
 .handCardSelected {
-  border-color: #2b2418;
-  box-shadow: 0 0 0 2px rgba(43, 36, 24, 0.18), 0 12px 24px rgba(82, 71, 43, 0.16);
+  border-color: rgba(68, 50, 20, 0.08);
+  box-shadow: 0 0 0 4px rgba(255, 230, 120, 0.55), 0 12px 24px rgba(82, 71, 43, 0.18);
 }
 
 .handCardInner {
@@ -444,7 +445,7 @@
   }
 
   .playInfoGridCompact {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .handGrid {
