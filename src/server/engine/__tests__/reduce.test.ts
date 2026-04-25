@@ -182,7 +182,10 @@ describe("engine/reduce (minimal)", () => {
     const out2 = reduce(input2, { type: "DRAW_FOR_DEALER", playerId: "p2" });
     expect(out2.room.status).toBe("dealing");
     expect(out2.room.dealerId).toBe("p2"); // 9 最大
-    expect(out2.room.dealerDrawResults).toBeNull();
+    expect(out2.room.dealerDrawResults).toEqual({
+      p1: { type: "number", color: null, value: 2 },
+      p2: { type: "number", color: null, value: 9 },
+    });
     expect(out2.dealerDrawPile).toBeNull();
   });
 
@@ -192,6 +195,10 @@ describe("engine/reduce (minimal)", () => {
       room: {
         status: "dealing",
         dealerId: "p1",
+        dealerDrawResults: {
+          p1: { type: "number", color: null, value: 2 },
+          p2: { type: "number", color: null, value: 9 },
+        },
         discardPile: [], // 发牌时会重置
         drawPileCount: 0,
         handCounts: { p1: 0, p2: 0 },
@@ -236,6 +243,7 @@ describe("engine/reduce (minimal)", () => {
     expect(out.room.discardPile[0]!.type).toBe("number");
     expect(out.room.discardPile[0]!.value).toBe(9);
     expect(out.room.drawPileCount).toBe(out.drawPile.length);
+    expect(out.room.dealerDrawResults).toBeNull();
     expect(out.lastAction.type).toBe("dealt");
   });
 
@@ -393,4 +401,3 @@ describe("engine/reduce (minimal)", () => {
     expect(out.room.pendingDraw).toEqual({ count: 0, type: null });
   });
 });
-

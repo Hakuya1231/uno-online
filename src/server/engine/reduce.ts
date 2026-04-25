@@ -180,7 +180,8 @@ export function reduce(input: ReduceInput, action: EngineAction): ReduceResult {
         if (!winnerId) throw new Error("未能选出庄家（异常选庄结果）");
         nextRoom.dealerId = winnerId;
         nextRoom.status = "dealing";
-        nextRoom.dealerDrawResults = null;
+        // 保留完整选庄结果到 dealing 阶段，便于客户端短暂展示后再进入发牌流程。
+        nextRoom.dealerDrawResults = results;
         nextDealerDrawPile = null;
       }
 
@@ -292,6 +293,7 @@ export function reduce(input: ReduceInput, action: EngineAction): ReduceResult {
       nextRoom.pendingDraw = { count: 0, type: null };
       nextRoom.hasDrawnThisTurn = false;
       nextRoom.roundWinnerId = null;
+      nextRoom.dealerDrawResults = null;
 
       // 从庄家下一位开始
       const dealerIndex = room.players.findIndex((p) => p.id === room.dealerId);
