@@ -351,6 +351,9 @@ export default function GamePage() {
                   <span className={styles.metaLabel}>方向</span>
                   <span className={styles.metaValue}>{directionZh(room.direction)}</span>
                 </div>
+              </div>
+
+              <div className={styles.playInfoGridCompact}>
                 <div className={styles.metaCard}>
                   <span className={styles.metaLabel}>当前颜色</span>
                   <span className={styles.metaValue}>{room.chosenColor ? colorZh(room.chosenColor) : "无"}</span>
@@ -359,11 +362,10 @@ export default function GamePage() {
                   <span className={styles.metaLabel}>叠加摸牌</span>
                   <span className={styles.metaValue}>{pendingDrawZh(room.pendingDraw)}</span>
                 </div>
-              </div>
-
-              <div className={styles.discardCard}>
-                <span className={styles.discardTitle}>弃牌堆顶</span>
-                <span className={styles.discardValue}>{topDiscard(room) ? cardText(topDiscard(room)!) : "（无）"}</span>
+                <div className={styles.discardCard}>
+                  <span className={styles.discardTitle}>弃牌堆顶</span>
+                  <span className={styles.discardValue}>{topDiscard(room) ? cardText(topDiscard(room)!) : "（无）"}</span>
+                </div>
               </div>
             </div>
           ) : (
@@ -456,9 +458,6 @@ export default function GamePage() {
         {room && (room.status === "playing" || room.status === "paused") ? (
           <>
             <section className={styles.playPanel}>
-              <div className={styles.sectionHeader}>
-                <h2 className={styles.sectionTitle}>玩家手牌数量</h2>
-              </div>
               <Collapse
                 question="查看玩家列表"
                 defaultExpanded={false}
@@ -478,13 +477,6 @@ export default function GamePage() {
             </section>
 
             <section className={styles.handPanel}>
-              <div className={styles.sectionHeader}>
-                <h2 className={styles.sectionTitle}>我的手牌</h2>
-                <p className={styles.sectionSubtle}>
-                  {isMyTurn ? "现在轮到你行动。" : currentPlayer ? `当前轮到 ${currentPlayer.name}。` : "等待同步牌局。"}
-                </p>
-              </div>
-
               {msg ? <div className={styles.message}>{msg}</div> : null}
 
               {hand === null ? (
