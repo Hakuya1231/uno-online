@@ -626,42 +626,54 @@ export default function GamePage() {
         ) : null}
 
         {room && room.status === "finished" ? (
-        <div style={{ display: "grid", gap: 12 }}>
-          <div style={{ fontWeight: 700 }}>
-            第{room.currentRound}局结算 胜者：{room.roundWinnerId ? playerName(room, room.roundWinnerId) : "（未知）"}
+        <section className={styles.settlementPanel}>
+          <div className={styles.phaseHeader}>
+            <h2 className={styles.phaseTitle}>结算</h2>
+            <p className={styles.phaseSubtitle}>第 {room.currentRound} 局已经结束。</p>
           </div>
 
-          <table style={{ borderCollapse: "collapse", width: "100%" }}>
-            <thead>
-              <tr>
-                <th style={{ textAlign: "left", borderBottom: "1px solid #3333", padding: 8 }}>玩家</th>
-                <th style={{ textAlign: "left", borderBottom: "1px solid #3333", padding: 8 }}>剩余手牌</th>
-                <th style={{ textAlign: "left", borderBottom: "1px solid #3333", padding: 8 }}>累计</th>
-              </tr>
-            </thead>
-            <tbody>
-              {room.players.map((p) => (
-                <tr key={p.id}>
-                  <td style={{ padding: 8, borderBottom: "1px solid #3331" }}>{p.name}</td>
-                  <td style={{ padding: 8, borderBottom: "1px solid #3331" }}>
-                    {room.handCounts[p.id] ?? 0} 张
-                  </td>
-                  <td style={{ padding: 8, borderBottom: "1px solid #3331" }}>{room.scores[p.id] ?? 0}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <div className={styles.winnerCard}>
+            <span className={styles.winnerLabel}>本局胜者</span>
+            <span className={styles.winnerName}>
+              {room.roundWinnerId ? playerName(room, room.roundWinnerId) : "（未知）"}
+            </span>
+          </div>
 
-          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-            <button type="button" onClick={doNextRound} disabled={busy || !ready || !isHost}>
+          <div className={styles.settlementList}>
+            {room.players.map((p) => {
+              const isWinner = room.roundWinnerId === p.id;
+              return (
+                <div key={p.id} className={`${styles.settlementItem} ${isWinner ? styles.settlementItemWinner : ""}`}>
+                  <div className={styles.settlementMain}>
+                    <span className={styles.settlementName}>{p.name}</span>
+                    {isWinner ? <span className={styles.settlementBadge}>WIN</span> : null}
+                  </div>
+                  <div className={styles.settlementStats}>
+                    <div className={styles.settlementStat}>
+                      <span className={styles.settlementStatLabel}>剩余手牌</span>
+                      <span className={styles.settlementStatValue}>{room.handCounts[p.id] ?? 0} 张</span>
+                    </div>
+                    <div className={styles.settlementStat}>
+                      <span className={styles.settlementStatLabel}>累计分数</span>
+                      <span className={styles.settlementStatValue}>{room.scores[p.id] ?? 0}</span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          <div className={styles.settlementActions}>
+            <Button type="primary" block onClick={doNextRound} disabled={busy || !ready || !isHost}>
               开始下一局
-            </button>
-            <button type="button" onClick={doEnd} disabled={busy || !ready || !isHost}>
+            </Button>
+            <Button type="default" block onClick={doEnd} disabled={busy || !ready || !isHost}>
               结束游戏
-            </button>
+            </Button>
           </div>
-          {!isHost ? <div style={{ opacity: 0.8 }}>仅房主可开始下一局或结束游戏。</div> : null}
-        </div>
+
+          {!isHost ? <div className={styles.subtle}>仅房主可开始下一局或结束游戏。</div> : null}
+        </section>
         ) : null}
 
         {room && room.status === "ended" ? (
