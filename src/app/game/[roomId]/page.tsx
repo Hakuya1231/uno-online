@@ -1,15 +1,19 @@
 "use client";
 
+import "animal-island-ui/style";
+
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { doc, onSnapshot } from "firebase/firestore";
 import type { Card, PublicRoomDoc } from "@/shared";
+import { Button, Divider, Footer } from "animal-island-ui";
 
 import { postJson } from "@/client/api";
 import { getClientFirestore } from "@/client/firestore";
 import { useLocalSession } from "@/client/useLocalSession";
 import { useFirebaseAuthUser } from "@/client/useFirebaseAuthUser";
 import { ROOM_STATUS_ZH, cardZh, colorZh, directionZh, pendingDrawZh } from "@/client/uiText";
+import styles from "./page.module.css";
 
 function getRoomIdFromParams(params: Record<string, string | string[]>) {
   const v = params.roomId;
@@ -307,83 +311,105 @@ export default function GamePage() {
     dealerRevealUntil !== null ? Math.max(0, Math.ceil((dealerRevealUntil - now) / 1000)) : 0;
 
   return (
-    <div
-      style={{
-        width: "100%",
-        minHeight: "100vh",
-        boxSizing: "border-box",
-        maxWidth: 900,
-        margin: "40px auto",
-        padding: 16,
-      }}
-    >
-      <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
-        <div>
-          <h1 style={{ marginBottom: 8 }}>UNO Online</h1>
-          <div style={{ opacity: 0.8 }}>房间号：<code>{roomId}</code></div>
-          {room ? (
-            <div style={{ opacity: 0.8 }}>
-              状态：<code>{ROOM_STATUS_ZH[room.status]}</code>
+    <div className={styles.page}>
+      <main className={styles.shell}>
+        <section className={styles.topPanel}>
+          <div className={styles.titleRow}>
+            <div>
+              <h1 className={styles.title}>白夜大小姐的UNO</h1>
+              <div className={styles.roomMeta}>
+                房间号
+                <span className={styles.roomCode}>{roomId}</span>
+              </div>
             </div>
-          ) : null}
-        </div>
-      </div>
-
-      <hr style={{ margin: "16px 0" }} />
-
-      {roomError ? <div style={{ whiteSpace: "pre-wrap" }}>房间订阅错误：{roomError}</div> : null}
-      {handError ? <div style={{ whiteSpace: "pre-wrap", opacity: 0.8 }}>手牌订阅错误：{handError}</div> : null}
-      {room && (room.status === "playing" || room.status === "paused") ? null : msg ? (
-        <div style={{ whiteSpace: "pre-wrap" }}>{msg}</div>
-      ) : null}
-
-      {!room ? <div style={{ opacity: 0.8 }}>正在加载…</div> : null}
-
-      {room && !hasJoined ? (
-        <div style={{ opacity: 0.8 }}>你尚未加入该房间，请回到房间页加入。</div>
-      ) : null}
-
-      {room && (room.status === "choosing_dealer" || showDealerReveal) ? (
-        <div style={{ display: "grid", gap: 12, width: "100%" }}>
-          <div style={{ fontWeight: 700 }}>选庄 - 摸牌比大小</div>
-          <div style={{ opacity: 0.8 }}>
-            {showDealerReveal ? `选庄结果已出，${dealerRevealLeftSec}s 后进入发牌…` : "提示：依次摸一张牌，比大小决定庄家。"}
           </div>
-          <div style={{ display: "grid", gap: 6 }}>
-            {room.players.map((p) => {
-              const c = room.dealerDrawResults?.[p.id] ?? null;
-              return (
-                <div key={p.id} style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                  <div style={{ width: 160 }}>{p.name}</div>
-                  <div style={{ opacity: 0.9 }}>
-                    {c ? <code>{cardText(c)}</code> : <span style={{ opacity: 0.7 }}>等待摸牌...</span>}
-                  </div>
-                </div>
-              );
-            })}
+
+          <div className={styles.metaGrid}>
+            <div className={styles.metaCard}>
+              <span className={styles.metaLabel}>房间状态</span>
+              <span className={styles.metaValue}>{room ? ROOM_STATUS_ZH[room.status] : "正在加载"}</span>
+            </div>
+            {room ? (
+              <div className={styles.metaCard}>
+                <span className={styles.metaLabel}>当前庄家</span>
+                <span className={styles.metaValue}>{playerName(room, room.dealerId)}</span>
+              </div>
+            ) : null}
+            {room ? (
+              <div className={styles.metaCard}>
+                <span className={styles.metaLabel}>庄家方式</span>
+                <span className={styles.metaValue}>{room.dealerMode === "draw_compare" ? "摸牌比大小" : "房主当庄"}</span>
+              </div>
+            ) : null}
           </div>
-          {!showDealerReveal ? (
-            <button type="button" onClick={doDrawForDealer} disabled={busy || !ready}>
-              摸牌
-            </button>
+
+          <Divider type="wave-yellow" />
+
+          {roomError ? <div className={styles.message}>房间订阅错误：{roomError}</div> : null}
+          {handError ? <div className={styles.subtle}>手牌订阅错误：{handError}</div> : null}
+          {room && (room.status === "playing" || room.status === "paused") ? null : msg ? (
+            <div className={styles.message}>{msg}</div>
           ) : null}
-        </div>
-      ) : null}
 
-      {room && room.status === "dealing" && !showDealerReveal ? (
-        <div style={{ display: "grid", gap: 12, width: "100%" }}>
-          <div>庄家：{playerName(room, room.dealerId)}</div>
-          {isDealer ? (
-            <button type="button" onClick={doDeal} disabled={busy || !ready}>
-              发牌
-            </button>
-          ) : (
-            <div style={{ opacity: 0.8 }}>等待庄家发牌...</div>
-          )}
-        </div>
-      ) : null}
+          {!room ? <div className={styles.subtle}>正在加载…</div> : null}
+          {room && !hasJoined ? <div className={styles.subtle}>你尚未加入该房间，请回到房间页加入。</div> : null}
+        </section>
 
-      {room && (room.status === "playing" || room.status === "paused") ? (
+        {room && (room.status === "choosing_dealer" || showDealerReveal) ? (
+          <section className={styles.phasePanel}>
+            <div className={styles.phaseHeader}>
+              <h2 className={styles.phaseTitle}>选庄</h2>
+              <p className={styles.phaseSubtitle}>
+                {showDealerReveal ? `选庄结果已出，${dealerRevealLeftSec}s 后进入发牌…` : "依次摸一张牌，比大小决定庄家。"}
+              </p>
+            </div>
+
+            <Divider type="wave-yellow" />
+
+            <ul className={styles.resultList}>
+              {room.players.map((p) => {
+                const c = room.dealerDrawResults?.[p.id] ?? null;
+                return (
+                  <li key={p.id} className={styles.resultItem}>
+                    <span className={styles.playerName}>{p.name}</span>
+                    {c ? <span className={styles.cardValue}>{cardText(c)}</span> : <span className={styles.pending}>等待摸牌...</span>}
+                  </li>
+                );
+              })}
+            </ul>
+
+            {!showDealerReveal ? (
+              <div className={styles.actionGroup}>
+                <Button type="primary" block size="large" onClick={doDrawForDealer} loading={busy} disabled={busy || !ready}>
+                  摸牌
+                </Button>
+              </div>
+            ) : null}
+          </section>
+        ) : null}
+
+        {room && room.status === "dealing" && !showDealerReveal ? (
+          <section className={styles.phasePanel}>
+            <div className={styles.phaseHeader}>
+              <h2 className={styles.phaseTitle}>等待发牌</h2>
+              <p className={styles.phaseSubtitle}>庄家：{playerName(room, room.dealerId)}</p>
+            </div>
+
+            <Divider type="wave-yellow" />
+
+            {isDealer ? (
+              <div className={styles.actionGroup}>
+                <Button type="primary" block size="large" onClick={doDeal} loading={busy} disabled={busy || !ready}>
+                  发牌
+                </Button>
+              </div>
+            ) : (
+              <div className={styles.subtle}>等待庄家发牌...</div>
+            )}
+          </section>
+        ) : null}
+
+        {room && (room.status === "playing" || room.status === "paused") ? (
         <div style={{ display: "grid", gap: 12, position: "relative" }}>
           <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
             <div>
@@ -546,9 +572,9 @@ export default function GamePage() {
             </div>
           ) : null}
         </div>
-      ) : null}
+        ) : null}
 
-      {room && room.status === "finished" ? (
+        {room && room.status === "finished" ? (
         <div style={{ display: "grid", gap: 12 }}>
           <div style={{ fontWeight: 700 }}>
             第{room.currentRound}局结算 胜者：{room.roundWinnerId ? playerName(room, room.roundWinnerId) : "（未知）"}
@@ -585,16 +611,23 @@ export default function GamePage() {
           </div>
           {!isHost ? <div style={{ opacity: 0.8 }}>仅房主可开始下一局或结束游戏。</div> : null}
         </div>
-      ) : null}
+        ) : null}
 
-      {room && room.status === "ended" ? (
+        {room && room.status === "ended" ? (
         <div style={{ display: "grid", gap: 12 }}>
           <div style={{ fontWeight: 700 }}>房间已结束</div>
           <button type="button" onClick={() => router.push("/")}>
             返回首页
           </button>
         </div>
-      ) : null}
+        ) : null}
+
+        {(room?.status === "choosing_dealer" || room?.status === "dealing" || showDealerReveal) ? (
+          <section className={styles.footerBlock}>
+            <Footer type="tree" />
+          </section>
+        ) : null}
+      </main>
     </div>
   );
 }
