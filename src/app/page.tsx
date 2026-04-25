@@ -1,21 +1,23 @@
 "use client";
 
+import "animal-island-ui/style";
+
 import { useCallback, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Button, Divider, Footer, Input } from "animal-island-ui";
 import styles from "./page.module.css";
 
 import type { DealerMode } from "@/shared";
 import { loadLocalSession } from "@/client/localSession";
 import { postJson } from "@/client/api";
 import { useLocalSession } from "@/client/useLocalSession";
-import { NicknameInput } from "@/app/_components/NicknameInput";
 import { DEALER_MODE_ZH } from "@/client/uiText";
 
 type CreateRoomResp = { roomId: string };
 
 export default function HomePage() {
   const router = useRouter();
-  const { session, ready } = useLocalSession();
+  const { ready } = useLocalSession();
 
   const initial = useMemo(() => loadLocalSession(), []);
   const [nickname, setNickname] = useState(initial.nickname || "");
@@ -62,70 +64,118 @@ export default function HomePage() {
 
   return (
     <div className={styles.page}>
-      <main className={styles.main} style={{ gap: 16 }}>
-        <h1>UNO Online</h1>
+      <main className={styles.shell}>
+        <section className={styles.hero}>
+          <div className={styles.introPanel}>
+            <span className={styles.eyebrow}>UNO Online</span>
 
-        <div style={{ opacity: 0.8 }}>
-          {ready ? <span>已进入系统</span> : <span>正在进入系统...</span>}
-        </div>
-
-        <div style={{ fontSize: 14, opacity: 0.8 }}>
-          <a href="/ui-lab/animal-island">查看 Animal Island UI 最小验证页</a>
-        </div>
-
-        <div style={{ width: "100%", maxWidth: 520, display: "grid", gap: 12 }}>
-          <NicknameInput value={nickname} onChange={setNickname} disabled={busy} />
-
-          <label style={{ display: "grid", gap: 6 }}>
-            <span>庄家方式</span>
-            <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-              <label style={{ display: "flex", gap: 6, alignItems: "center" }}>
-                <input
-                  type="radio"
-                  name="dealerMode"
-                  value="host"
-                  checked={dealerMode === "host"}
-                  onChange={() => setDealerMode("host")}
-                />
-                {DEALER_MODE_ZH.host}
-              </label>
-              <label style={{ display: "flex", gap: 6, alignItems: "center" }}>
-                <input
-                  type="radio"
-                  name="dealerMode"
-                  value="draw_compare"
-                  checked={dealerMode === "draw_compare"}
-                  onChange={() => setDealerMode("draw_compare")}
-                />
-                {DEALER_MODE_ZH.draw_compare}
-              </label>
+            <div className={styles.metaRow}>
+              <div className={styles.metaCard}>
+                <span className={styles.metaLabel}>系统状态</span>
+                <span className={styles.metaValue}>{ready ? "已进入系统" : "正在进入系统..."}</span>
+              </div>
+              <div className={styles.metaCard}>
+                <span className={styles.metaLabel}>昵称</span>
+                <span className={styles.metaValue}>{nickname.trim() || "等待输入"}</span>
+              </div>
+              <div className={styles.metaCard}>
+                <span className={styles.metaLabel}>选庄方式</span>
+                <span className={styles.metaValue}>{DEALER_MODE_ZH[dealerMode]}</span>
+              </div>
             </div>
-          </label>
 
-          <button
-            type="button"
-            onClick={createRoom}
-            disabled={busy || !ready || nickname.trim().length === 0}
-          >
-            创建房间
-          </button>
+            <Divider type="wave-yellow" />
+          </div>
 
-          <hr style={{ width: "100%" }} />
+          <div className={styles.formPanel}>
+            <div className={styles.panelHeader}>
+              <h2 className={styles.panelTitle}>开始游戏</h2>
+              <p className={styles.panelSubtitle}>输入昵称后就可以创建房间，或者直接加入朋友发来的房间号。</p>
+            </div>
 
-          <label style={{ display: "grid", gap: 6 }}>
-            <span>房间号</span>
-            <input value={joinRoomId} onChange={(e) => setJoinRoomId(e.target.value)} placeholder="例如 ABC123" />
-          </label>
-          <button
-            type="button"
-            onClick={joinRoom}
-            disabled={busy || !ready || nickname.trim().length === 0}
-          >
-            加入房间
-          </button>
+            <div className={styles.fieldGroup}>
+              <span className={styles.fieldLabel}>你的昵称</span>
+              <Input
+                value={nickname}
+                onChange={(e) => setNickname(e.target.value)}
+                placeholder="例如 小熊维尼"
+                allowClear
+                onClear={() => setNickname("")}
+                disabled={busy}
+              />
+            </div>
 
-          {msg ? <div style={{ whiteSpace: "pre-wrap" }}>{msg}</div> : null}
-        </div>
+            <div className={styles.fieldGroup}>
+              <span className={styles.fieldLabel}>庄家方式</span>
+              <div className={styles.modeRow}>
+                <Button
+                  type={dealerMode === "host" ? "primary" : "default"}
+                  onClick={() => setDealerMode("host")}
+                  disabled={busy}
+                >
+                  {DEALER_MODE_ZH.host}
+                </Button>
+                <Button
+                  type={dealerMode === "draw_compare" ? "primary" : "default"}
+                  onClick={() => setDealerMode("draw_compare")}
+                  disabled={busy}
+                >
+                  {DEALER_MODE_ZH.draw_compare}
+                </Button>
+              </div>
+            </div>
+
+            <div className={styles.actionRow}>
+              <Button
+                type="primary"
+                block
+                size="large"
+                onClick={createRoom}
+                loading={busy}
+                disabled={!ready || nickname.trim().length === 0}
+              >
+                创建房间
+              </Button>
+            </div>
+
+            <Divider type="line-teal" />
+
+            <div className={styles.fieldGroup}>
+              <span className={styles.fieldLabel}>房间号</span>
+              <Input
+                value={joinRoomId}
+                onChange={(e) => setJoinRoomId(e.target.value.toUpperCase())}
+                placeholder="例如 ABC123"
+                allowClear
+                onClear={() => setJoinRoomId("")}
+                disabled={busy}
+              />
+            </div>
+
+            <div className={styles.actionRow}>
+              <Button
+                type="default"
+                block
+                size="large"
+                onClick={joinRoom}
+                loading={busy}
+                disabled={!ready || nickname.trim().length === 0}
+              >
+                加入房间
+              </Button>
+            </div>
+
+            {msg ? <div className={styles.message}>{msg}</div> : null}
+          </div>
+        </section>
+
+        <section className={styles.footerBlock}>
+          <div className={styles.footerText}>
+            <span>UNO Online</span>
+            <span>创建房间、加入房间，马上开始一局。</span>
+          </div>
+          <Footer type="tree" />
+        </section>
       </main>
     </div>
   );
