@@ -368,6 +368,11 @@ export default function GamePage() {
 
   return (
     <div className={styles.page}>
+      {actionToast ? (
+        <div className={styles.toastViewport}>
+          <div className={styles.actionToast}>{actionToast}</div>
+        </div>
+      ) : null}
       <main className={styles.shell}>
         <section className={styles.topPanel}>
           <div className={styles.titleRow}>
@@ -458,7 +463,6 @@ export default function GamePage() {
             />
           ) : null}
 
-          {actionToast ? <div className={styles.actionToast}>{actionToast}</div> : null}
           {roomError ? <div className={styles.message}>房间订阅错误：{roomError}</div> : null}
           {handError ? <div className={styles.subtle}>手牌订阅错误：{handError}</div> : null}
           {room && (room.status === "playing" || room.status === "paused") ? null : msg ? (
