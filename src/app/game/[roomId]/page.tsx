@@ -248,6 +248,22 @@ export default function GamePage() {
     room?.status === "paused" && typeof room.pauseUntil === "number" ? Math.max(0, room.pauseUntil - now) : 0;
   const pauseLeftSec = Math.ceil(pauseLeft / 1000);
 
+  // 选庄结果展示：最后一人摸完后延迟几秒再进入发牌（避免看不到结果）
+  const [dealerRevealUntil, setDealerRevealUntil] = useState<number | null>(null);
+  useEffect(() => {
+    if (!room) return;
+    if (room.dealerMode !== "draw_compare") return;
+    if (room.status !== "dealing") return;
+    if (!room.dealerDrawResults) return;
+    if (Object.keys(room.dealerDrawResults).length < room.players.length) return;
+    if (dealerRevealUntil !== null) return;
+    setDealerRevealUntil(Date.now() + 2000);
+  }, [dealerRevealUntil, room]);
+  useEffect(() => {
+    if (dealerRevealUntil === null) return;
+    if (now >= dealerRevealUntil) setDealerRevealUntil(null);
+  }, [dealerRevealUntil, now]);
+
   const currentPlayer =
     room && room.players[room.currentPlayerIndex] ? room.players[room.currentPlayerIndex]! : null;
   const isMyTurn = Boolean(room && currentPlayer && session.userId && currentPlayer.id === session.userId);
@@ -258,8 +274,21 @@ export default function GamePage() {
     if (!needsColor) setChosenColor(null);
   }, [needsColor]);
 
+  const showDealerReveal = Boolean(room && room.status === "dealing" && dealerRevealUntil !== null && now < dealerRevealUntil);
+  const dealerRevealLeftSec =
+    dealerRevealUntil !== null ? Math.max(0, Math.ceil((dealerRevealUntil - now) / 1000)) : 0;
+
   return (
-    <div style={{ maxWidth: 900, margin: "40px auto", padding: 16 }}>
+    <div
+      style={{
+        width: "100%",
+        minHeight: "100vh",
+        boxSizing: "border-box",
+        maxWidth: 900,
+        margin: "40px auto",
+        padding: 16,
+      }}
+    >
       <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
         <div>
           <h1 style={{ marginBottom: 8 }}>UNO Online</h1>
@@ -286,10 +315,12 @@ export default function GamePage() {
         <div style={{ opacity: 0.8 }}>你尚未加入该房间，请回到房间页加入。</div>
       ) : null}
 
-      {room && room.status === "choosing_dealer" ? (
-        <div style={{ display: "grid", gap: 12 }}>
+      {room && (room.status === "choosing_dealer" || showDealerReveal) ? (
+        <div style={{ display: "grid", gap: 12, width: "100%" }}>
           <div style={{ fontWeight: 700 }}>选庄 - 摸牌比大小</div>
-            <div style={{ opacity: 0.8 }}>提示：依次摸一张牌，比大小决定庄家。</div>
+          <div style={{ opacity: 0.8 }}>
+            {showDealerReveal ? `选庄结果已出，${dealerRevealLeftSec}s 后进入发牌…` : "提示：依次摸一张牌，比大小决定庄家。"}
+          </div>
           <div style={{ display: "grid", gap: 6 }}>
             {room.players.map((p) => {
               const c = room.dealerDrawResults?.[p.id] ?? null;
@@ -303,14 +334,16 @@ export default function GamePage() {
               );
             })}
           </div>
-          <button type="button" onClick={doDrawForDealer} disabled={busy || !ready}>
-            摸牌
-          </button>
+          {!showDealerReveal ? (
+            <button type="button" onClick={doDrawForDealer} disabled={busy || !ready}>
+              摸牌
+            </button>
+          ) : null}
         </div>
       ) : null}
 
-      {room && room.status === "dealing" ? (
-        <div style={{ display: "grid", gap: 12 }}>
+      {room && room.status === "dealing" && !showDealerReveal ? (
+        <div style={{ display: "grid", gap: 12, width: "100%" }}>
           <div>庄家：{playerName(room, room.dealerId)}</div>
           {isDealer ? (
             <button type="button" onClick={doDeal} disabled={busy || !ready}>
