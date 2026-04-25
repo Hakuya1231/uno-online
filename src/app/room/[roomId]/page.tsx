@@ -8,6 +8,7 @@ import { useLocalSession } from "@/client/useLocalSession";
 import { NicknameInput } from "@/app/_components/NicknameInput";
 import { getClientFirestore } from "@/client/firestore";
 import type { PublicRoomDoc } from "@/shared";
+import { DEALER_MODE_ZH } from "@/client/uiText";
 
 function getRoomIdFromParams(params: Record<string, string | string[]>) {
   const v = params.roomId;
@@ -123,7 +124,7 @@ export default function RoomPage() {
           <div style={{ fontSize: 12, opacity: 0.7 }}>房间号</div>
           <div style={{ fontSize: 24, fontWeight: 700 }}>{roomId}</div>
           <div style={{ fontSize: 12, opacity: 0.7 }}>
-            当前用户：<code>{session.userId || "未知"}</code> 昵称：<code>{session.nickname || "未设置"}</code>
+            我的昵称：<code>{session.nickname || "未设置"}</code>
           </div>
         </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
@@ -141,7 +142,7 @@ export default function RoomPage() {
         {room ? (
           <>
             <div style={{ opacity: 0.8 }}>
-              庄家方式：{room.dealerMode === "host" ? "房主当庄" : "摸牌比大小"}
+              庄家方式：{DEALER_MODE_ZH[room.dealerMode]}
             </div>
 
             <div>
@@ -189,11 +190,7 @@ export default function RoomPage() {
               </button>
             )}
 
-            {isHost ? (
-              <div style={{ opacity: 0.7, fontSize: 12 }}>
-                开始条件：status=waiting 且人数≥2（后续会补“添加/移除 AI”）
-              </div>
-            ) : null}
+            {/* 房主提示行按设计图移除 */}
           </>
         ) : (
           <div style={{ opacity: 0.8 }}>正在加载房间信息…</div>

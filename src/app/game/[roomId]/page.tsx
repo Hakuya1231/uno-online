@@ -9,37 +9,14 @@ import { postJson } from "@/client/api";
 import { getClientFirestore } from "@/client/firestore";
 import { useLocalSession } from "@/client/useLocalSession";
 import { useFirebaseAuthUser } from "@/client/useFirebaseAuthUser";
+import { ROOM_STATUS_ZH, cardZh, colorZh, directionZh } from "@/client/uiText";
 
 function getRoomIdFromParams(params: Record<string, string | string[]>) {
   const v = params.roomId;
   return typeof v === "string" ? v : Array.isArray(v) ? v[0] ?? "" : "";
 }
 
-function cardText(card: Card): string {
-  const color =
-    card.color === "red"
-      ? "红"
-      : card.color === "yellow"
-        ? "黄"
-        : card.color === "green"
-          ? "绿"
-          : card.color === "blue"
-            ? "蓝"
-            : "无";
-  const face =
-    card.type === "number"
-      ? String(card.value ?? "?")
-      : card.type === "skip"
-        ? "Skip"
-        : card.type === "reverse"
-          ? "Rev"
-          : card.type === "draw_two"
-            ? "+2"
-            : card.type === "wild"
-              ? "W"
-              : "+4";
-  return `${color}${face}`;
-}
+const cardText = cardZh;
 
 function topDiscard(room: PublicRoomDoc): Card | null {
   return room.discardPile.length > 0 ? room.discardPile[room.discardPile.length - 1]! : null;
@@ -283,12 +260,10 @@ export default function GamePage() {
       <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
         <div>
           <h1 style={{ marginBottom: 8 }}>UNO Online</h1>
-          <div style={{ opacity: 0.8 }}>
-            roomId：<code>{roomId}</code> userId：<code>{session.userId || "未知"}</code>
-          </div>
+          <div style={{ opacity: 0.8 }}>房间号：<code>{roomId}</code></div>
           {room ? (
             <div style={{ opacity: 0.8 }}>
-              状态：<code>{room.status}</code>
+              状态：<code>{ROOM_STATUS_ZH[room.status]}</code>
             </div>
           ) : null}
         </div>
@@ -298,7 +273,9 @@ export default function GamePage() {
 
       {roomError ? <div style={{ whiteSpace: "pre-wrap" }}>房间订阅错误：{roomError}</div> : null}
       {handError ? <div style={{ whiteSpace: "pre-wrap", opacity: 0.8 }}>手牌订阅错误：{handError}</div> : null}
-      {msg ? <div style={{ whiteSpace: "pre-wrap" }}>{msg}</div> : null}
+      {room && (room.status === "playing" || room.status === "paused") ? null : msg ? (
+        <div style={{ whiteSpace: "pre-wrap" }}>{msg}</div>
+      ) : null}
 
       {!room ? <div style={{ opacity: 0.8 }}>正在加载…</div> : null}
 
@@ -309,6 +286,7 @@ export default function GamePage() {
       {room && room.status === "choosing_dealer" ? (
         <div style={{ display: "grid", gap: 12 }}>
           <div style={{ fontWeight: 700 }}>选庄 - 摸牌比大小</div>
+            <div style={{ opacity: 0.8 }}>提示：依次摸一张牌，比大小决定庄家。</div>
           <div style={{ display: "grid", gap: 6 }}>
             {room.players.map((p) => {
               const c = room.dealerDrawResults?.[p.id] ?? null;
@@ -345,11 +323,11 @@ export default function GamePage() {
         <div style={{ display: "grid", gap: 12, position: "relative" }}>
           <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
             <div>
-              第{room.currentRound}局 摸牌堆:{room.drawPileCount} 方向:{room.direction === 1 ? "→" : "←"} 轮到:
+              第{room.currentRound}局 摸牌堆:{room.drawPileCount} 方向:{directionZh(room.direction)} 轮到:
               {currentPlayer ? currentPlayer.name : "（无）"}
             </div>
             <div style={{ opacity: 0.8 }}>
-              当前颜色：{room.chosenColor ? (room.chosenColor === "red" ? "红" : room.chosenColor === "yellow" ? "黄" : room.chosenColor === "green" ? "绿" : "蓝") : "（无）"}
+              当前颜色：{room.chosenColor ? colorZh(room.chosenColor) : "（无）"}
               {"  "}pending:{room.pendingDraw.type ?? "无"}/{room.pendingDraw.count}
             </div>
           </div>
@@ -372,6 +350,7 @@ export default function GamePage() {
 
           <div style={{ padding: 12, border: "1px solid #3333", borderRadius: 8 }}>
             <div style={{ opacity: 0.8, marginBottom: 8 }}>我的手牌</div>
+            {msg ? <div style={{ whiteSpace: "pre-wrap", marginBottom: 8 }}>{msg}</div> : null}
             {hand === null ? (
               <div style={{ opacity: 0.8 }}>（未能读取手牌；请检查 Firestore Rules 是否允许读取自己的 hands 文档）</div>
             ) : (
@@ -385,10 +364,11 @@ export default function GamePage() {
                       setMsg("");
                     }}
                     style={{
-                      padding: "6px 8px",
+                      padding: "10px 12px",
                       borderRadius: 8,
                       border: idx === selectedIndex ? "2px solid #111" : "1px solid #3336",
                       background: idx === selectedIndex ? "#eee" : "white",
+                      fontSize: 16,
                     }}
                     disabled={busy}
                   >
@@ -420,24 +400,49 @@ export default function GamePage() {
             ) : null}
           </div>
 
-          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-            <button type="button" onClick={doPlaySelected} disabled={busy || !ready || !isMyTurn || selectedIndex === null || (needsColor && !chosenColor)}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 10 }}>
+            <button
+              type="button"
+              onClick={doPlaySelected}
+              disabled={busy || !ready || !isMyTurn || selectedIndex === null || (needsColor && !chosenColor)}
+              style={{ padding: "12px 14px", fontSize: 18, borderRadius: 10 }}
+            >
               出牌
             </button>
-            <button type="button" onClick={doDrawCard} disabled={busy || !ready || !isMyTurn}>
+            <button
+              type="button"
+              onClick={doDrawCard}
+              disabled={busy || !ready || !isMyTurn}
+              style={{ padding: "12px 14px", fontSize: 18, borderRadius: 10 }}
+            >
               摸牌
             </button>
-            <button type="button" onClick={doSkip} disabled={busy || !ready || !isMyTurn}>
+            <button
+              type="button"
+              onClick={doSkip}
+              disabled={busy || !ready || !isMyTurn}
+              style={{ padding: "12px 14px", fontSize: 18, borderRadius: 10 }}
+            >
               跳过
             </button>
 
             {room.pendingDraw.count > 0 ? (
               <>
-                <button type="button" onClick={doAccept} disabled={busy || !ready || !isMyTurn}>
+                <button
+                  type="button"
+                  onClick={doAccept}
+                  disabled={busy || !ready || !isMyTurn}
+                  style={{ padding: "12px 14px", fontSize: 18, borderRadius: 10 }}
+                >
                   接受
                 </button>
                 {room.pendingDraw.type === "wild_draw_four" ? (
-                  <button type="button" onClick={doChallenge} disabled={busy || !ready || !isMyTurn}>
+                  <button
+                    type="button"
+                    onClick={doChallenge}
+                    disabled={busy || !ready || !isMyTurn}
+                    style={{ padding: "12px 14px", fontSize: 18, borderRadius: 10 }}
+                  >
                     质疑
                   </button>
                 ) : null}

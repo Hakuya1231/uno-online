@@ -9,6 +9,7 @@ import { loadLocalSession } from "@/client/localSession";
 import { postJson } from "@/client/api";
 import { useLocalSession } from "@/client/useLocalSession";
 import { NicknameInput } from "@/app/_components/NicknameInput";
+import { DEALER_MODE_ZH } from "@/client/uiText";
 
 type CreateRoomResp = { roomId: string };
 
@@ -65,13 +66,7 @@ export default function HomePage() {
         <h1>UNO Online</h1>
 
         <div style={{ opacity: 0.8 }}>
-          {ready ? (
-            <span>
-              已登录：<code>{session.userId}</code>
-            </span>
-          ) : (
-            <span>正在进入系统...</span>
-          )}
+          {ready ? <span>已进入系统</span> : <span>正在进入系统...</span>}
         </div>
 
         <div style={{ width: "100%", maxWidth: 520, display: "grid", gap: 12 }}>
@@ -88,7 +83,7 @@ export default function HomePage() {
                   checked={dealerMode === "host"}
                   onChange={() => setDealerMode("host")}
                 />
-                房主当庄
+                {DEALER_MODE_ZH.host}
               </label>
               <label style={{ display: "flex", gap: 6, alignItems: "center" }}>
                 <input
@@ -98,7 +93,7 @@ export default function HomePage() {
                   checked={dealerMode === "draw_compare"}
                   onChange={() => setDealerMode("draw_compare")}
                 />
-                摸牌比大小
+                {DEALER_MODE_ZH.draw_compare}
               </label>
             </div>
           </label>
