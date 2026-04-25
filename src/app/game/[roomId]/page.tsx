@@ -428,7 +428,7 @@ export default function GamePage() {
                 </div>
               </div>
             </div>
-          ) : (
+          ) : room && room.status === "finished" ? null : (
             <div className={styles.metaGrid}>
               <div className={styles.metaCard}>
                 <span className={styles.metaLabel}>房间状态</span>
@@ -628,7 +628,6 @@ export default function GamePage() {
         {room && room.status === "finished" ? (
         <section className={styles.settlementPanel}>
           <div className={styles.phaseHeader}>
-            <h2 className={styles.phaseTitle}>结算</h2>
             <p className={styles.phaseSubtitle}>第 {room.currentRound} 局已经结束。</p>
           </div>
 
@@ -663,16 +662,16 @@ export default function GamePage() {
             })}
           </div>
 
-          <div className={styles.settlementActions}>
-            <Button type="primary" block onClick={doNextRound} disabled={busy || !ready || !isHost}>
-              开始下一局
-            </Button>
-            <Button type="default" block onClick={doEnd} disabled={busy || !ready || !isHost}>
-              结束游戏
-            </Button>
-          </div>
-
-          {!isHost ? <div className={styles.subtle}>仅房主可开始下一局或结束游戏。</div> : null}
+          {isHost ? (
+            <div className={styles.settlementActions}>
+              <Button type="primary" block onClick={doNextRound} disabled={busy || !ready}>
+                开始下一局
+              </Button>
+              <Button type="default" block onClick={doEnd} disabled={busy || !ready}>
+                结束游戏
+              </Button>
+            </div>
+          ) : null}
         </section>
         ) : null}
 
