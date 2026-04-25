@@ -164,14 +164,18 @@ export default function RoomPage() {
                   <span className={styles.metaLabel}>庄家方式</span>
                   <span className={styles.metaValue}>{DEALER_MODE_ZH[room.dealerMode]}</span>
                 </div>
-                <div className={styles.metaCard}>
-                  <span className={styles.metaLabel}>玩家人数</span>
-                  <span className={styles.metaValue}>{room.players.length} 人</span>
-                </div>
-                <div className={styles.metaCard}>
-                  <span className={styles.metaLabel}>我的昵称</span>
-                  <span className={styles.metaValue}>{session.nickname || "未设置"}</span>
-                </div>
+                {room.status !== "waiting" ? (
+                  <div className={styles.metaCard}>
+                    <span className={styles.metaLabel}>玩家人数</span>
+                    <span className={styles.metaValue}>{room.players.length} 人</span>
+                  </div>
+                ) : null}
+                {room.status !== "waiting" ? (
+                  <div className={styles.metaCard}>
+                    <span className={styles.metaLabel}>我的昵称</span>
+                    <span className={styles.metaValue}>{session.nickname || "未设置"}</span>
+                  </div>
+                ) : null}
               </div>
             ) : (
               <div className={styles.metaGrid}>
@@ -259,11 +263,6 @@ export default function RoomPage() {
                 )
               ) : (
                 <div className={styles.actionGroup}>
-                  {!canStart ? (
-                    <div className={styles.note}>
-                      {room.players.length < 2 ? "至少需要 2 名玩家才能开始游戏。" : "房间暂时不能开始，请稍候。"}
-                    </div>
-                  ) : null}
                   <Button
                     type="primary"
                     block
