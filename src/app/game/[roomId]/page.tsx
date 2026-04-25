@@ -329,13 +329,13 @@ export default function GamePage() {
               <span className={styles.metaLabel}>房间状态</span>
               <span className={styles.metaValue}>{room ? ROOM_STATUS_ZH[room.status] : "正在加载"}</span>
             </div>
-            {room ? (
+            {room && room.status !== "choosing_dealer" ? (
               <div className={styles.metaCard}>
                 <span className={styles.metaLabel}>当前庄家</span>
                 <span className={styles.metaValue}>{playerName(room, room.dealerId)}</span>
               </div>
             ) : null}
-            {room ? (
+            {room && room.status === "choosing_dealer" ? (
               <div className={styles.metaCard}>
                 <span className={styles.metaLabel}>庄家方式</span>
                 <span className={styles.metaValue}>{room.dealerMode === "draw_compare" ? "摸牌比大小" : "房主当庄"}</span>
