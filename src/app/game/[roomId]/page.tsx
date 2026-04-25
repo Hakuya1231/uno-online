@@ -381,6 +381,9 @@ export default function GamePage() {
               <div className={styles.roomMeta}>
                 房间号
                 <span className={styles.roomCode}>{roomId}</span>
+                <span className={styles.roomMetaDivider}>|</span>
+                我的昵称
+                <span className={styles.roomCode}>{session.nickname || "未设置"}</span>
               </div>
             </div>
           </div>

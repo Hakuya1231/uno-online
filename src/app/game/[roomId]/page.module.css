@@ -61,6 +61,12 @@
   letter-spacing: 0.08em;
 }
 
+.roomMetaDivider {
+  display: inline-block;
+  margin: 0 8px;
+  opacity: 0.5;
+}
+
 .metaGrid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
