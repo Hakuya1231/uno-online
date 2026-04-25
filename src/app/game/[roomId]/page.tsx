@@ -180,8 +180,11 @@ export default function GamePage() {
     setMsg("");
     try {
       const out = await postJson<{ hand: Card[]; result: "success" | "fail" }>("/api/game/challenge", { roomId });
-      // 质疑接口会返回“被质疑者手牌”，这里先用 msg 提示结果；手牌变化仍以 onSnapshot 为准
-      setMsg(`质疑结果：${out.result}（返回被质疑者手牌 ${out.hand.length} 张）`);
+      // 质疑接口会返回“被质疑者手牌”，这里用 msg 列出返回内容；手牌变化仍以 onSnapshot 为准
+      const resultZh = out.result === "success" ? "成功" : "失败";
+      const cards = Array.isArray(out.hand) ? out.hand : [];
+      const cardsText = cards.length > 0 ? cards.map((c) => cardText(c)).join("、") : "（空）";
+      setMsg(`质疑结果：${resultZh}\n被质疑者手牌（${cards.length} 张）：${cardsText}`);
     } catch (e) {
       setMsg(`质疑失败：${e instanceof Error ? e.message : "unknown error"}`);
     } finally {
