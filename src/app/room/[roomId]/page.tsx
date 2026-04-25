@@ -118,7 +118,16 @@ export default function RoomPage() {
   }, [roomId, router]);
 
   return (
-    <div style={{ maxWidth: 760, margin: "40px auto", padding: 16 }}>
+    <div
+      style={{
+        width: "100%",
+        minHeight: "100vh",
+        boxSizing: "border-box",
+        maxWidth: 760,
+        margin: "40px auto",
+        padding: 16,
+      }}
+    >
       <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
         <div>
           <div style={{ fontSize: 12, opacity: 0.7 }}>房间号</div>
