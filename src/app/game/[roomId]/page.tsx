@@ -263,6 +263,11 @@ export default function GamePage() {
     if (dealerRevealUntil === null) return;
     if (now >= dealerRevealUntil) setDealerRevealUntil(null);
   }, [dealerRevealUntil, now]);
+  useEffect(() => {
+    // 离开 dealing 后清理，避免影响后续回合
+    if (!room) return;
+    if (room.status !== "dealing" && dealerRevealUntil !== null) setDealerRevealUntil(null);
+  }, [dealerRevealUntil, room]);
 
   const currentPlayer =
     room && room.players[room.currentPlayerIndex] ? room.players[room.currentPlayerIndex]! : null;
@@ -274,7 +279,18 @@ export default function GamePage() {
     if (!needsColor) setChosenColor(null);
   }, [needsColor]);
 
-  const showDealerReveal = Boolean(room && room.status === "dealing" && dealerRevealUntil !== null && now < dealerRevealUntil);
+  const shouldDealerReveal =
+    Boolean(
+      room &&
+        room.dealerMode === "draw_compare" &&
+        room.status === "dealing" &&
+        room.dealerDrawResults &&
+        Object.keys(room.dealerDrawResults).length >= room.players.length,
+    );
+  // 关键：当满足“应展示”但计时还没初始化（dealerRevealUntil===null）时，也先展示，避免闪到“等待发牌”
+  const showDealerReveal = Boolean(
+    room && shouldDealerReveal && (dealerRevealUntil === null || now < dealerRevealUntil),
+  );
   const dealerRevealLeftSec =
     dealerRevealUntil !== null ? Math.max(0, Math.ceil((dealerRevealUntil - now) / 1000)) : 0;
 
