@@ -67,6 +67,14 @@ describe("RoomService", () => {
     expect(room?.players.map((p) => p.id)).toEqual(["p1", "p2", "ai1", "ai2"]);
   });
 
+  it("joinRoom: 已有相同昵称时不允许加入", async () => {
+    const repo = new InMemoryRoomRepo();
+    const svc = new RoomService(repo, () => "r1");
+    const { roomId } = await svc.createRoom({ hostId: "p1", hostName: "白夜", dealerMode: "host" });
+
+    await expect(svc.joinRoom({ roomId, playerId: "p2", name: "白夜" })).rejects.toThrow(/昵称重复/);
+  });
+
   it("joinRoom: 非 waiting 状态不允许加入", async () => {
     const repo = new InMemoryRoomRepo();
     const svc = new RoomService(repo, () => "r1");
@@ -96,4 +104,3 @@ describe("RoomService", () => {
     expect(priv?.dealerDrawPile?.length).toBe(10);
   });
 });
-

@@ -115,6 +115,11 @@ export class RoomService {
         return;
       }
 
+      const normalizedName = input.name.trim().toLocaleLowerCase();
+      if (room.players.some((p) => p.name.trim().toLocaleLowerCase() === normalizedName)) {
+        throw new Error("昵称重复");
+      }
+
       if (room.players.length >= 8) throw new Error("房间已满");
 
       const nextRoom: PublicRoomDoc = { ...room, roomVersion: room.roomVersion + 1 };
