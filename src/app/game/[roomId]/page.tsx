@@ -6,7 +6,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { doc, onSnapshot } from "firebase/firestore";
 import type { Card, PublicRoomDoc } from "@/shared";
-import { Button, Divider, Footer } from "animal-island-ui";
+import { Button, Collapse, Divider, Footer } from "animal-island-ui";
 
 import { postJson } from "@/client/api";
 import { getClientFirestore } from "@/client/firestore";
@@ -29,6 +29,14 @@ function topDiscard(room: PublicRoomDoc): Card | null {
 function playerName(room: PublicRoomDoc, playerId: string) {
   const p = room.players.find((x) => x.id === playerId);
   return p ? p.name : playerId;
+}
+
+function handCardClass(card: Card) {
+  if (card.color === "red") return styles.handRed;
+  if (card.color === "yellow") return styles.handYellow;
+  if (card.color === "green") return styles.handGreen;
+  if (card.color === "blue") return styles.handBlue;
+  return styles.handWild;
 }
 
 export default function GamePage() {
@@ -324,24 +332,60 @@ export default function GamePage() {
             </div>
           </div>
 
-          <div className={styles.metaGrid}>
-            <div className={styles.metaCard}>
-              <span className={styles.metaLabel}>房间状态</span>
-              <span className={styles.metaValue}>{room ? ROOM_STATUS_ZH[room.status] : "正在加载"}</span>
+          {room && (room.status === "playing" || room.status === "paused") ? (
+            <div className={styles.playInfoWrap}>
+              <div className={styles.playInfoGrid}>
+                <div className={styles.metaCard}>
+                  <span className={styles.metaLabel}>当前牌局</span>
+                  <span className={styles.metaValue}>第 {room.currentRound} 局</span>
+                </div>
+                <div className={styles.metaCard}>
+                  <span className={styles.metaLabel}>轮到</span>
+                  <span className={styles.metaValue}>{currentPlayer ? currentPlayer.name : "（无）"}</span>
+                </div>
+                <div className={styles.metaCard}>
+                  <span className={styles.metaLabel}>摸牌堆</span>
+                  <span className={styles.metaValue}>{room.drawPileCount} 张</span>
+                </div>
+                <div className={styles.metaCard}>
+                  <span className={styles.metaLabel}>方向</span>
+                  <span className={styles.metaValue}>{directionZh(room.direction)}</span>
+                </div>
+                <div className={styles.metaCard}>
+                  <span className={styles.metaLabel}>当前颜色</span>
+                  <span className={styles.metaValue}>{room.chosenColor ? colorZh(room.chosenColor) : "无"}</span>
+                </div>
+                <div className={styles.metaCard}>
+                  <span className={styles.metaLabel}>叠加摸牌</span>
+                  <span className={styles.metaValue}>{pendingDrawZh(room.pendingDraw)}</span>
+                </div>
+              </div>
+
+              <div className={styles.discardCard}>
+                <span className={styles.discardTitle}>弃牌堆顶</span>
+                <span className={styles.discardValue}>{topDiscard(room) ? cardText(topDiscard(room)!) : "（无）"}</span>
+              </div>
             </div>
-            {room && room.status !== "choosing_dealer" ? (
+          ) : (
+            <div className={styles.metaGrid}>
               <div className={styles.metaCard}>
-                <span className={styles.metaLabel}>当前庄家</span>
-                <span className={styles.metaValue}>{playerName(room, room.dealerId)}</span>
+                <span className={styles.metaLabel}>房间状态</span>
+                <span className={styles.metaValue}>{room ? ROOM_STATUS_ZH[room.status] : "正在加载"}</span>
               </div>
-            ) : null}
-            {room && room.status === "choosing_dealer" ? (
-              <div className={styles.metaCard}>
-                <span className={styles.metaLabel}>庄家方式</span>
-                <span className={styles.metaValue}>{room.dealerMode === "draw_compare" ? "摸牌比大小" : "房主当庄"}</span>
-              </div>
-            ) : null}
-          </div>
+              {room && room.status !== "choosing_dealer" ? (
+                <div className={styles.metaCard}>
+                  <span className={styles.metaLabel}>当前庄家</span>
+                  <span className={styles.metaValue}>{playerName(room, room.dealerId)}</span>
+                </div>
+              ) : null}
+              {room && room.status === "choosing_dealer" ? (
+                <div className={styles.metaCard}>
+                  <span className={styles.metaLabel}>庄家方式</span>
+                  <span className={styles.metaValue}>{room.dealerMode === "draw_compare" ? "摸牌比大小" : "房主当庄"}</span>
+                </div>
+              ) : null}
+            </div>
+          )}
 
           <Divider type="wave-yellow" />
 
@@ -410,168 +454,127 @@ export default function GamePage() {
         ) : null}
 
         {room && (room.status === "playing" || room.status === "paused") ? (
-        <div style={{ display: "grid", gap: 12, position: "relative" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
-            <div>
-              第{room.currentRound}局 摸牌堆:{room.drawPileCount} 方向:{directionZh(room.direction)} 轮到:
-              {currentPlayer ? currentPlayer.name : "（无）"}
-            </div>
-            <div style={{ opacity: 0.8 }}>
-              当前颜色：{room.chosenColor ? colorZh(room.chosenColor) : "（无）"}
-              {"  "}叠加摸牌：{pendingDrawZh(room.pendingDraw)}
-            </div>
-          </div>
-
-          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-            {room.players.map((p) => (
-              <div key={p.id} style={{ padding: 8, border: "1px solid #3333", borderRadius: 8, minWidth: 120 }}>
-                <div style={{ fontWeight: 700 }}>{p.name}</div>
-                <div style={{ opacity: 0.8 }}>{room.handCounts[p.id] ?? 0} 张</div>
+          <>
+            <section className={styles.playPanel}>
+              <div className={styles.sectionHeader}>
+                <h2 className={styles.sectionTitle}>玩家手牌数量</h2>
+                <p className={styles.sectionSubtle}>展开后可以查看每位玩家当前还剩多少张牌。</p>
               </div>
-            ))}
-          </div>
+              <Collapse
+                question="查看玩家列表"
+                defaultExpanded={false}
+                answer={
+                  <div className={styles.collapseAnswer}>
+                    <ul className={styles.playerCountList}>
+                      {room.players.map((p) => (
+                        <li key={p.id} className={styles.playerCountItem}>
+                          <span className={styles.playerCountName}>{p.name}</span>
+                          <span className={styles.playerCountValue}>{room.handCounts[p.id] ?? 0} 张</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                }
+              />
+            </section>
 
-          <div style={{ padding: 12, border: "1px solid #3333", borderRadius: 8 }}>
-            <div style={{ opacity: 0.8, marginBottom: 8 }}>弃牌堆顶</div>
-            <div style={{ fontSize: 20, fontWeight: 700 }}>
-              {topDiscard(room) ? <code>{cardText(topDiscard(room)!)}</code> : "（无）"}
-            </div>
-          </div>
-
-          <div style={{ padding: 12, border: "1px solid #3333", borderRadius: 8 }}>
-            <div style={{ opacity: 0.8, marginBottom: 8 }}>我的手牌</div>
-            {msg ? <div style={{ whiteSpace: "pre-wrap", marginBottom: 8 }}>{msg}</div> : null}
-            {hand === null ? (
-              <div style={{ opacity: 0.8 }}>（未能读取手牌；请检查 Firestore Rules 是否允许读取自己的 hands 文档）</div>
-            ) : (
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                {hand.map((c, idx) => (
-                  <button
-                    key={idx}
-                    type="button"
-                    onClick={() => {
-                      setSelectedIndex(idx);
-                      setMsg("");
-                    }}
-                    style={{
-                      padding: "10px 12px",
-                      borderRadius: 8,
-                      border: idx === selectedIndex ? "2px solid #111" : "1px solid #3336",
-                      background: idx === selectedIndex ? "#eee" : "white",
-                      fontSize: 16,
-                    }}
-                    disabled={busy}
-                  >
-                    {cardText(c)}
-                  </button>
-                ))}
+            <section className={styles.handPanel}>
+              <div className={styles.sectionHeader}>
+                <h2 className={styles.sectionTitle}>我的手牌</h2>
+                <p className={styles.sectionSubtle}>
+                  {isMyTurn ? "现在轮到你行动。" : currentPlayer ? `当前轮到 ${currentPlayer.name}。` : "等待同步牌局。"}
+                </p>
               </div>
-            )}
 
-            {needsColor ? (
-              <div style={{ marginTop: 10, display: "flex", gap: 8, flexWrap: "wrap" }}>
-                <span style={{ opacity: 0.8 }}>选颜色：</span>
-                {(["red", "yellow", "green", "blue"] as const).map((c) => (
-                  <button
-                    key={c}
-                    type="button"
-                    onClick={() => setChosenColor(c)}
-                    style={{
-                      padding: "8px 12px",
-                      borderRadius: 999,
-                      border: chosenColor === c ? "2px solid #111" : "1px solid #3336",
-                      fontSize: 16,
-                    }}
-                    disabled={busy}
-                  >
-                    {c === "red" ? "红" : c === "yellow" ? "黄" : c === "green" ? "绿" : "蓝"}
-                  </button>
-                ))}
-              </div>
-            ) : null}
-          </div>
+              {msg ? <div className={styles.message}>{msg}</div> : null}
 
-          <div style={{ display: "grid", gap: 10 }}>
-            {/* 第一行：出牌/摸牌/跳过（每个按钮占 1/4 行宽） */}
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 10 }}>
-              <button
-                type="button"
-                onClick={doPlaySelected}
-                disabled={busy || !ready || !isMyTurn || selectedIndex === null || (needsColor && !chosenColor)}
-                style={{ padding: "12px 14px", fontSize: 18, borderRadius: 10 }}
-              >
-                出牌
-              </button>
-              <button
-                type="button"
-                onClick={doDrawCard}
-                disabled={busy || !ready || !isMyTurn}
-                style={{ padding: "12px 14px", fontSize: 18, borderRadius: 10 }}
-              >
-                摸牌
-              </button>
-              <button
-                type="button"
-                onClick={doSkip}
-                disabled={busy || !ready || !isMyTurn}
-                style={{ padding: "12px 14px", fontSize: 18, borderRadius: 10 }}
-              >
-                跳过
-              </button>
-              <div />
-            </div>
-
-            {/* 第二行：接受/质疑（每个按钮占 1/4 行宽） */}
-            {room.pendingDraw.count > 0 ? (
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 10 }}>
-                <button
-                  type="button"
-                  onClick={doAccept}
-                  disabled={busy || !ready || !isMyTurn}
-                  style={{ padding: "12px 14px", fontSize: 18, borderRadius: 10 }}
-                >
-                  接受
-                </button>
-                {room.pendingDraw.type === "wild_draw_four" ? (
-                  <button
-                    type="button"
-                    onClick={doChallenge}
-                    disabled={busy || !ready || !isMyTurn}
-                    style={{ padding: "12px 14px", fontSize: 18, borderRadius: 10 }}
-                  >
-                    质疑
-                  </button>
-                ) : (
-                  <div />
-                )}
-                <div />
-                <div />
-              </div>
-            ) : null}
-          </div>
-
-          {room.status === "paused" ? (
-            <div
-              style={{
-                position: "absolute",
-                inset: 0,
-                background: "rgba(0,0,0,0.6)",
-                color: "white",
-                display: "grid",
-                placeItems: "center",
-                borderRadius: 12,
-                padding: 16,
-              }}
-            >
-              <div style={{ textAlign: "center" }}>
-                <div style={{ fontSize: 18, fontWeight: 700 }}>
-                  {room.disconnectedPlayerId ? `${playerName(room, room.disconnectedPlayerId)} 已断线` : "已暂停"}
+              {hand === null ? (
+                <div className={styles.subtle}>未能读取手牌，请刷新页面。</div>
+              ) : (
+                <div className={styles.handGrid}>
+                  {hand.map((c, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => {
+                        setSelectedIndex(idx);
+                        setMsg("");
+                      }}
+                      className={`${styles.handCard} ${handCardClass(c)} ${idx === selectedIndex ? styles.handCardSelected : ""}`}
+                      disabled={busy}
+                    >
+                      <div className={styles.handCardInner}>
+                        <span className={styles.handCardTitle}>{c.color ? `${colorZh(c.color)}牌` : "无色牌"}</span>
+                        <span className={styles.handCardText}>{cardText(c)}</span>
+                      </div>
+                    </button>
+                  ))}
                 </div>
-                <div style={{ opacity: 0.9, marginTop: 6 }}>等待重连... {pauseLeftSec}s</div>
+              )}
+
+              {needsColor ? (
+                <div className={styles.colorPicker}>
+                  <span className={styles.colorLabel}>选颜色：</span>
+                  {(["red", "yellow", "green", "blue"] as const).map((c) => (
+                    <Button
+                      key={c}
+                      type={chosenColor === c ? "primary" : "default"}
+                      onClick={() => setChosenColor(c)}
+                      disabled={busy}
+                    >
+                      {c === "red" ? "红" : c === "yellow" ? "黄" : c === "green" ? "绿" : "蓝"}
+                    </Button>
+                  ))}
+                </div>
+              ) : null}
+
+              <div className={styles.controlsGrid}>
+                <div className={styles.controlRow}>
+                  <Button
+                    type="primary"
+                    block
+                    onClick={doPlaySelected}
+                    loading={busy && false}
+                    disabled={busy || !ready || !isMyTurn || selectedIndex === null || (needsColor && !chosenColor)}
+                  >
+                    出牌
+                  </Button>
+                  <Button type="default" block onClick={doDrawCard} disabled={busy || !ready || !isMyTurn}>
+                    摸牌
+                  </Button>
+                  <Button type="default" block onClick={doSkip} disabled={busy || !ready || !isMyTurn}>
+                    跳过
+                  </Button>
+                </div>
+
+                {room.pendingDraw.count > 0 ? (
+                  <div className={room.pendingDraw.type === "wild_draw_four" ? styles.controlRowShort : styles.controlRowShort}>
+                    <Button type="default" block onClick={doAccept} disabled={busy || !ready || !isMyTurn}>
+                      接受
+                    </Button>
+                    {room.pendingDraw.type === "wild_draw_four" ? (
+                      <Button type="default" block onClick={doChallenge} disabled={busy || !ready || !isMyTurn}>
+                        质疑
+                      </Button>
+                    ) : (
+                      <div />
+                    )}
+                  </div>
+                ) : null}
               </div>
-            </div>
-          ) : null}
-        </div>
+
+              {room.status === "paused" ? (
+                <div className={styles.pauseOverlay}>
+                  <div className={styles.pauseContent}>
+                    <div className={styles.pauseTitle}>
+                      {room.disconnectedPlayerId ? `${playerName(room, room.disconnectedPlayerId)} 已断线` : "已暂停"}
+                    </div>
+                    <div className={styles.pauseSubtitle}>等待重连... {pauseLeftSec}s</div>
+                  </div>
+                </div>
+              ) : null}
+            </section>
+          </>
         ) : null}
 
         {room && room.status === "finished" ? (

@@ -17,7 +17,9 @@
 }
 
 .topPanel,
-.phasePanel {
+.phasePanel,
+.playPanel,
+.handPanel {
   border: 2px solid rgba(115, 96, 66, 0.16);
   border-radius: 30px;
   background: rgba(255, 252, 246, 0.88);
@@ -95,6 +97,40 @@
   font-size: 13px;
   line-height: 1.5;
   white-space: pre-wrap;
+}
+
+.playInfoWrap {
+  display: grid;
+  gap: 10px;
+}
+
+.playInfoGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.discardCard {
+  display: grid;
+  gap: 8px;
+  padding: 14px;
+  border-radius: 22px;
+  background: linear-gradient(180deg, #fff9ea 0%, #f4efdf 100%);
+  color: #674f33;
+}
+
+.discardTitle {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  opacity: 0.7;
+}
+
+.discardValue {
+  font-size: 22px;
+  line-height: 1.1;
+  font-weight: 800;
+  color: #483316;
 }
 
 .subtle {
@@ -177,6 +213,196 @@
   gap: 8px;
 }
 
+.playPanel,
+.handPanel {
+  position: relative;
+  padding: 18px 16px 16px;
+  display: grid;
+  gap: 12px;
+}
+
+.sectionHeader {
+  display: grid;
+  gap: 2px;
+}
+
+.sectionTitle {
+  font-size: 22px;
+  line-height: 1.1;
+  color: #3d4e35;
+}
+
+.sectionSubtle {
+  font-size: 13px;
+  line-height: 1.5;
+  color: #6d776b;
+}
+
+.collapseAnswer {
+  display: grid;
+  gap: 8px;
+  padding-top: 6px;
+}
+
+.playerCountList {
+  list-style: none;
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+}
+
+.playerCountItem {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: center;
+  padding: 10px 12px;
+  border-radius: 16px;
+  background: rgba(244, 239, 223, 0.9);
+}
+
+.playerCountName {
+  font-size: 14px;
+  line-height: 1.4;
+  font-weight: 700;
+  color: #594123;
+}
+
+.playerCountValue {
+  font-size: 12px;
+  line-height: 1.2;
+  font-weight: 700;
+  color: #7b6742;
+}
+
+.handGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(92px, 1fr));
+  gap: 10px;
+}
+
+.handCard {
+  min-height: 120px;
+  border-radius: 18px;
+  border: 2px solid rgba(68, 50, 20, 0.16);
+  padding: 12px 10px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: flex-start;
+  text-align: left;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+  box-shadow: 0 8px 18px rgba(82, 71, 43, 0.12);
+}
+
+.handCard:hover:not(:disabled) {
+  transform: translateY(-2px);
+}
+
+.handCardSelected {
+  border-color: #2b2418;
+  box-shadow: 0 0 0 2px rgba(43, 36, 24, 0.18), 0 12px 24px rgba(82, 71, 43, 0.16);
+}
+
+.handCardInner {
+  width: 100%;
+  display: grid;
+  gap: 10px;
+}
+
+.handCardTitle {
+  font-size: 12px;
+  line-height: 1.3;
+  font-weight: 800;
+}
+
+.handCardText {
+  font-size: 18px;
+  line-height: 1.15;
+  font-weight: 900;
+  word-break: break-word;
+}
+
+.handRed {
+  background: #f06d69;
+  color: #111111;
+}
+
+.handYellow {
+  background: #f6d768;
+  color: #111111;
+}
+
+.handGreen {
+  background: #8fd17f;
+  color: #111111;
+}
+
+.handBlue {
+  background: #88a8f3;
+  color: #111111;
+}
+
+.handWild {
+  background: #111111;
+  color: #ffffff;
+}
+
+.colorPicker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.colorLabel {
+  font-size: 13px;
+  color: #6d776b;
+}
+
+.controlsGrid {
+  display: grid;
+  gap: 8px;
+}
+
+.controlRow {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.controlRowShort {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.pauseOverlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  color: white;
+  display: grid;
+  place-items: center;
+  border-radius: 24px;
+  padding: 16px;
+}
+
+.pauseContent {
+  text-align: center;
+}
+
+.pauseTitle {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.pauseSubtitle {
+  opacity: 0.9;
+  margin-top: 6px;
+}
+
 .footerBlock {
   max-width: 480px;
   width: 100%;
@@ -190,7 +416,9 @@
   }
 
   .topPanel,
-  .phasePanel {
+  .phasePanel,
+  .playPanel,
+  .handPanel {
     border-radius: 24px;
   }
 
@@ -200,5 +428,13 @@
 
   .phaseTitle {
     font-size: 28px;
+  }
+
+  .playInfoGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .handGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
