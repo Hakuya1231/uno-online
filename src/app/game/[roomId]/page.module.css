@@ -179,13 +179,13 @@
 .actionToast {
   padding: 12px 16px;
   border-radius: 20px;
-  background: #f4efdf;
-  color: #674f33;
-  box-shadow: 0 12px 24px rgba(82, 71, 43, 0.12);
+  background: #f8a6b2;
+  color: #ffffff;
+  box-shadow: 0 12px 24px rgba(248, 166, 178, 0.35);
   font-size: 13px;
   line-height: 1.5;
   animation: fadeInOut 1s ease;
-  border: 2px solid rgba(115, 96, 66, 0.12);
+  border: 2px solid rgba(225, 112, 136, 0.45);
 }
 
 .phasePanel {

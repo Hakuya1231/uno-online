@@ -362,9 +362,13 @@ export default function GamePage() {
 
     setSeenActionKey(key);
     setActionToast(lastActionText(room, room.lastAction));
+  }, [room, seenActionKey]);
+
+  useEffect(() => {
+    if (!actionToast) return;
     const timer = window.setTimeout(() => setActionToast(""), 1000);
     return () => window.clearTimeout(timer);
-  }, [room, seenActionKey]);
+  }, [actionToast]);
 
   return (
     <div className={styles.page}>
