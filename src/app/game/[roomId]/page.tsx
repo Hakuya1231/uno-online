@@ -458,7 +458,6 @@ export default function GamePage() {
             <section className={styles.playPanel}>
               <div className={styles.sectionHeader}>
                 <h2 className={styles.sectionTitle}>玩家手牌数量</h2>
-                <p className={styles.sectionSubtle}>展开后可以查看每位玩家当前还剩多少张牌。</p>
               </div>
               <Collapse
                 question="查看玩家列表"
@@ -504,7 +503,6 @@ export default function GamePage() {
                       disabled={busy}
                     >
                       <div className={styles.handCardInner}>
-                        <span className={styles.handCardTitle}>{c.color ? `${colorZh(c.color)}牌` : "无色牌"}</span>
                         <span className={styles.handCardText}>{cardText(c)}</span>
                       </div>
                     </button>
@@ -634,4 +632,3 @@ export default function GamePage() {
     </div>
   );
 }
-

@@ -106,7 +106,7 @@
 
 .playInfoGrid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
 }
 
@@ -278,20 +278,20 @@
 
 .handGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(92px, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
 }
 
 .handCard {
-  min-height: 120px;
-  border-radius: 18px;
+  min-height: 112px;
+  aspect-ratio: 2 / 3;
+  border-radius: 14px;
   border: 2px solid rgba(68, 50, 20, 0.16);
-  padding: 12px 10px;
+  padding: 10px 6px;
   display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  align-items: flex-start;
-  text-align: left;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
   transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
   box-shadow: 0 8px 18px rgba(82, 71, 43, 0.12);
 }
@@ -307,19 +307,15 @@
 
 .handCardInner {
   width: 100%;
-  display: grid;
-  gap: 10px;
-}
-
-.handCardTitle {
-  font-size: 12px;
-  line-height: 1.3;
-  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100%;
 }
 
 .handCardText {
-  font-size: 18px;
-  line-height: 1.15;
+  font-size: 16px;
+  line-height: 1.1;
   font-weight: 900;
   word-break: break-word;
 }
@@ -430,11 +426,11 @@
     font-size: 28px;
   }
 
-  .playInfoGrid {
-    grid-template-columns: 1fr;
+  .handGrid {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
   }
 
-  .handGrid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+  .handCardText {
+    font-size: 14px;
   }
 }
