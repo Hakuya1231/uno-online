@@ -9,7 +9,7 @@ import { postJson } from "@/client/api";
 import { getClientFirestore } from "@/client/firestore";
 import { useLocalSession } from "@/client/useLocalSession";
 import { useFirebaseAuthUser } from "@/client/useFirebaseAuthUser";
-import { ROOM_STATUS_ZH, cardZh, colorZh, directionZh } from "@/client/uiText";
+import { ROOM_STATUS_ZH, cardZh, colorZh, directionZh, pendingDrawZh } from "@/client/uiText";
 
 function getRoomIdFromParams(params: Record<string, string | string[]>) {
   const v = params.roomId;
@@ -328,7 +328,7 @@ export default function GamePage() {
             </div>
             <div style={{ opacity: 0.8 }}>
               当前颜色：{room.chosenColor ? colorZh(room.chosenColor) : "（无）"}
-              {"  "}pending:{room.pendingDraw.type ?? "无"}/{room.pendingDraw.count}
+              {"  "}叠加摸牌：{pendingDrawZh(room.pendingDraw)}
             </div>
           </div>
 
@@ -387,9 +387,10 @@ export default function GamePage() {
                     type="button"
                     onClick={() => setChosenColor(c)}
                     style={{
-                      padding: "4px 8px",
+                      padding: "8px 12px",
                       borderRadius: 999,
                       border: chosenColor === c ? "2px solid #111" : "1px solid #3336",
+                      fontSize: 16,
                     }}
                     disabled={busy}
                   >
@@ -400,34 +401,39 @@ export default function GamePage() {
             ) : null}
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 10 }}>
-            <button
-              type="button"
-              onClick={doPlaySelected}
-              disabled={busy || !ready || !isMyTurn || selectedIndex === null || (needsColor && !chosenColor)}
-              style={{ padding: "12px 14px", fontSize: 18, borderRadius: 10 }}
-            >
-              出牌
-            </button>
-            <button
-              type="button"
-              onClick={doDrawCard}
-              disabled={busy || !ready || !isMyTurn}
-              style={{ padding: "12px 14px", fontSize: 18, borderRadius: 10 }}
-            >
-              摸牌
-            </button>
-            <button
-              type="button"
-              onClick={doSkip}
-              disabled={busy || !ready || !isMyTurn}
-              style={{ padding: "12px 14px", fontSize: 18, borderRadius: 10 }}
-            >
-              跳过
-            </button>
+          <div style={{ display: "grid", gap: 10 }}>
+            {/* 第一行：出牌/摸牌/跳过（每个按钮占 1/4 行宽） */}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 10 }}>
+              <button
+                type="button"
+                onClick={doPlaySelected}
+                disabled={busy || !ready || !isMyTurn || selectedIndex === null || (needsColor && !chosenColor)}
+                style={{ padding: "12px 14px", fontSize: 18, borderRadius: 10 }}
+              >
+                出牌
+              </button>
+              <button
+                type="button"
+                onClick={doDrawCard}
+                disabled={busy || !ready || !isMyTurn}
+                style={{ padding: "12px 14px", fontSize: 18, borderRadius: 10 }}
+              >
+                摸牌
+              </button>
+              <button
+                type="button"
+                onClick={doSkip}
+                disabled={busy || !ready || !isMyTurn}
+                style={{ padding: "12px 14px", fontSize: 18, borderRadius: 10 }}
+              >
+                跳过
+              </button>
+              <div />
+            </div>
 
+            {/* 第二行：接受/质疑（每个按钮占 1/4 行宽） */}
             {room.pendingDraw.count > 0 ? (
-              <>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 10 }}>
                 <button
                   type="button"
                   onClick={doAccept}
@@ -445,8 +451,12 @@ export default function GamePage() {
                   >
                     质疑
                   </button>
-                ) : null}
-              </>
+                ) : (
+                  <div />
+                )}
+                <div />
+                <div />
+              </div>
             ) : null}
           </div>
 

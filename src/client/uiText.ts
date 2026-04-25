@@ -1,4 +1,4 @@
-import type { Card, CardColor, CardType, DealerMode, PublicRoomDoc, RoomStatus } from "@/shared";
+import type { Card, CardColor, CardType, DealerMode, PendingDraw, PublicRoomDoc, RoomStatus } from "@/shared";
 
 export const ROOM_STATUS_ZH: Record<RoomStatus, string> = {
   waiting: "等待中",
@@ -50,5 +50,11 @@ export function cardZh(card: Card): string {
   if (card.type === "wild_draw_four") return "+4";
   // 其余功能牌：带颜色
   return `${colorZh(card.color)}${cardTypeZh(card.type)}`;
+}
+
+export function pendingDrawZh(p: PendingDraw): string {
+  if (p.count <= 0 || p.type === null) return "无";
+  const t = p.type === "draw_two" ? "+2" : "+4";
+  return `${t} ×${p.count}`;
 }
 
