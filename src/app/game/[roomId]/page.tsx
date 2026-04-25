@@ -677,7 +677,6 @@ export default function GamePage() {
 
         {room && room.status === "ended" ? (
         <div style={{ display: "grid", gap: 12 }}>
-          <div style={{ fontWeight: 700 }}>房间已结束</div>
           <Button type="primary" onClick={() => router.push("/")}>
             返回首页
           </Button>
