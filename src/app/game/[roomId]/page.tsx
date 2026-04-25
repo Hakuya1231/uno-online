@@ -389,7 +389,24 @@ export default function GamePage() {
             </div>
           )}
 
-          <Divider type="wave-yellow" />
+          {room && (room.status === "playing" || room.status === "paused") ? (
+            <Collapse
+              question="查看玩家列表"
+              defaultExpanded={false}
+              answer={
+                <div className={styles.collapseAnswer}>
+                  <ul className={styles.playerCountList}>
+                    {room.players.map((p) => (
+                      <li key={p.id} className={styles.playerCountItem}>
+                        <span className={styles.playerCountName}>{p.name}</span>
+                        <span className={styles.playerCountValue}>{room.handCounts[p.id] ?? 0} 张</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              }
+            />
+          ) : null}
 
           {roomError ? <div className={styles.message}>房间订阅错误：{roomError}</div> : null}
           {handError ? <div className={styles.subtle}>手牌订阅错误：{handError}</div> : null}
@@ -456,27 +473,7 @@ export default function GamePage() {
         ) : null}
 
         {room && (room.status === "playing" || room.status === "paused") ? (
-          <>
-            <section className={styles.playPanel}>
-              <Collapse
-                question="查看玩家列表"
-                defaultExpanded={false}
-                answer={
-                  <div className={styles.collapseAnswer}>
-                    <ul className={styles.playerCountList}>
-                      {room.players.map((p) => (
-                        <li key={p.id} className={styles.playerCountItem}>
-                          <span className={styles.playerCountName}>{p.name}</span>
-                          <span className={styles.playerCountValue}>{room.handCounts[p.id] ?? 0} 张</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                }
-              />
-            </section>
-
-            <section className={styles.handPanel}>
+          <section className={styles.handPanel}>
               {msg ? <div className={styles.message}>{msg}</div> : null}
 
               {hand === null ? (
@@ -564,7 +561,6 @@ export default function GamePage() {
                 </div>
               ) : null}
             </section>
-          </>
         ) : null}
 
         {room && room.status === "finished" ? (

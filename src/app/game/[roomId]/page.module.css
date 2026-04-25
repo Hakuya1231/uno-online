@@ -104,6 +104,7 @@
 .playInfoWrap {
   display: grid;
   gap: 10px;
+  align-items: start;
 }
 
 .playInfoGrid {
@@ -116,6 +117,7 @@
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
+  align-items: start;
 }
 
 .discardCard {
@@ -125,7 +127,6 @@
   border-radius: 16px;
   background: linear-gradient(180deg, #fff9ea 0%, #f4efdf 100%);
   color: #674f33;
-  min-height: 100%;
 }
 
 .discardTitle {
@@ -223,20 +224,11 @@
   gap: 8px;
 }
 
-.playPanel,
 .handPanel {
   position: relative;
   padding: 18px 16px 16px;
   display: grid;
   gap: 12px;
-}
-
-.playPanel {
-  padding: 0;
-  border: none;
-  background: transparent;
-  box-shadow: none;
-  backdrop-filter: none;
 }
 
 .sectionHeader {
