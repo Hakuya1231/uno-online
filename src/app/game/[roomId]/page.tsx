@@ -39,6 +39,36 @@ function handCardClass(card: Card) {
   return styles.handWild;
 }
 
+function lastActionKey(action: PublicRoomDoc["lastAction"]) {
+  if (!action) return null;
+  return `${action.type}:${action.at}:${"by" in action ? action.by : "system"}`;
+}
+
+function lastActionText(room: PublicRoomDoc, action: NonNullable<PublicRoomDoc["lastAction"]>) {
+  switch (action.type) {
+    case "card_played":
+      return `${playerName(room, action.by)} 打出了 ${cardText(action.card)}`;
+    case "game_started":
+      return `${playerName(room, action.by)} 开始了游戏`;
+    case "dealer_card_drawn":
+      return `${playerName(room, action.by)} 摸到了选庄牌 ${cardText(action.card)}`;
+    case "dealt":
+      return `${playerName(room, action.by)} 完成发牌，起始牌是 ${cardText(action.initialCard)}`;
+    case "next_round_started":
+      return `${playerName(room, action.by)} 开始了第 ${action.currentRound} 局`;
+    case "game_ended":
+      return `${playerName(room, action.by)} 结束了游戏`;
+    case "card_drawn":
+      return `${playerName(room, action.by)} 摸了一张牌`;
+    case "skipped":
+      return `${playerName(room, action.by)} 选择了跳过`;
+    case "accepted_draw":
+      return `${playerName(room, action.by)} 接受了 ${action.drawType === "draw_two" ? "+2" : "+4"}，共摸 ${action.count} 张`;
+    case "challenge_result":
+      return `${playerName(room, action.by)} 质疑${action.result === "success" ? "成功" : "失败"}`;
+  }
+}
+
 export default function GamePage() {
   const router = useRouter();
   const params = useParams<Record<string, string | string[]>>();
@@ -54,6 +84,8 @@ export default function GamePage() {
 
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
+  const [actionToast, setActionToast] = useState<string>("");
+  const [seenActionKey, setSeenActionKey] = useState<string | null>(null);
 
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [chosenColor, setChosenColor] = useState<"red" | "yellow" | "green" | "blue" | null>(null);
@@ -318,6 +350,22 @@ export default function GamePage() {
   const dealerRevealLeftSec =
     dealerRevealUntil !== null ? Math.max(0, Math.ceil((dealerRevealUntil - now) / 1000)) : 0;
 
+  useEffect(() => {
+    if (!room?.lastAction) return;
+    const key = lastActionKey(room.lastAction);
+    if (!key) return;
+    if (seenActionKey === null) {
+      setSeenActionKey(key);
+      return;
+    }
+    if (key === seenActionKey) return;
+
+    setSeenActionKey(key);
+    setActionToast(lastActionText(room, room.lastAction));
+    const timer = window.setTimeout(() => setActionToast(""), 1000);
+    return () => window.clearTimeout(timer);
+  }, [room, seenActionKey]);
+
   return (
     <div className={styles.page}>
       <main className={styles.shell}>
@@ -339,7 +387,7 @@ export default function GamePage() {
                   <span className={styles.metaLabel}>当前牌局</span>
                   <span className={styles.metaValue}>第 {room.currentRound} 局</span>
                 </div>
-                <div className={styles.metaCard}>
+                <div className={`${styles.metaCard} ${isMyTurn ? styles.currentTurnCard : ""}`}>
                   <span className={styles.metaLabel}>轮到</span>
                   <span className={styles.metaValue}>{currentPlayer ? currentPlayer.name : "（无）"}</span>
                 </div>
@@ -391,6 +439,8 @@ export default function GamePage() {
 
           {room && (room.status === "playing" || room.status === "paused") ? (
             <Collapse
+              className={styles.playersCollapse}
+              style={{ margin: 0 }}
               question="查看玩家列表"
               defaultExpanded={false}
               answer={
@@ -408,6 +458,7 @@ export default function GamePage() {
             />
           ) : null}
 
+          {actionToast ? <div className={styles.actionToast}>{actionToast}</div> : null}
           {roomError ? <div className={styles.message}>房间订阅错误：{roomError}</div> : null}
           {handError ? <div className={styles.subtle}>手牌订阅错误：{handError}</div> : null}
           {room && (room.status === "playing" || room.status === "paused") ? null : msg ? (
