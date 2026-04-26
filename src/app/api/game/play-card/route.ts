@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import type { CardColor } from "@/shared";
 import { requireAuth } from "@/server/auth/requireAuth";
 import { FirestoreRoomRepo } from "@/server/repos/firestoreRoomRepo";
-import { GameService } from "@/server/services/gameService";
+import { GameFlowService } from "@/server/services/gameFlowService";
 
 export const runtime = "nodejs";
 
@@ -55,7 +55,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: msg }, { status: 400 });
     }
 
-    const svc = new GameService(new FirestoreRoomRepo());
+    const svc = new GameFlowService(new FirestoreRoomRepo());
     await svc.playCard({ roomId, playerId: user.uid, cardIndex, chosenColor });
     return NextResponse.json({});
   } catch (e) {
@@ -64,4 +64,3 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: msg }, { status });
   }
 }
-

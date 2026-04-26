@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { requireAuth } from "@/server/auth/requireAuth";
 import { FirestoreRoomRepo } from "@/server/repos/firestoreRoomRepo";
-import { RoomService } from "@/server/services/roomService";
+import { GameFlowService } from "@/server/services/gameFlowService";
 import { generateRoomId } from "@/server/utils/roomId";
 
 /**
@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
     const roomId = typeof body.roomId === "string" ? body.roomId.trim().toUpperCase() : "";
     if (!roomId) return NextResponse.json({ error: "roomId 非法" }, { status: 400 });
 
-    const svc = new RoomService(new FirestoreRoomRepo(), () => generateRoomId(6));
+    const svc = new GameFlowService(new FirestoreRoomRepo(), () => generateRoomId(6));
     await svc.startRoom({ roomId, playerId: user.uid });
 
     return NextResponse.json({});
@@ -47,4 +47,3 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: msg }, { status });
   }
 }
-

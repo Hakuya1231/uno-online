@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { requireAuth } from "@/server/auth/requireAuth";
 import { FirestoreRoomRepo } from "@/server/repos/firestoreRoomRepo";
-import { GameService } from "@/server/services/gameService";
+import { GameFlowService } from "@/server/services/gameFlowService";
 
 export const runtime = "nodejs";
 
@@ -15,7 +15,7 @@ function parseRoomId(body: Partial<Body>): string {
  * POST /api/game/challenge
  *
  * 质疑 +4。
- *
+ * 
  * Body: `{ roomId }`
  * Resp: `{ hand, result }`
  */
@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
     if (!roomId) return NextResponse.json({ error: "roomId 非法" }, { status: 400 });
 
     const repo = new FirestoreRoomRepo();
-    const svc = new GameService(repo);
+    const svc = new GameFlowService(repo);
     const out = await svc.challengeWildDrawFour({ roomId, playerId: user.uid });
 
     // 按 docs 约定：除质疑外，接口响应均为 {}；质疑返回 hand + result（便于客户端立即更新手牌）
@@ -38,4 +38,3 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: msg }, { status });
   }
 }
-
