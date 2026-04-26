@@ -6,7 +6,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { doc, onSnapshot } from "firebase/firestore";
 import type { Card, PublicRoomDoc } from "@/shared";
-import { Button, Collapse, Divider, Footer } from "animal-island-ui";
+import { Button, Card as UiCard, Collapse, Divider, Footer } from "animal-island-ui";
 
 import { postJson } from "@/client/api";
 import { getClientFirestore } from "@/client/firestore";
@@ -86,6 +86,8 @@ export default function GamePage() {
   const [msg, setMsg] = useState("");
   const [actionToast, setActionToast] = useState<string>("");
   const [seenActionKey, setSeenActionKey] = useState<string | null>(null);
+  const [unoToast, setUnoToast] = useState<string>("");
+  const [seenUnoKey, setSeenUnoKey] = useState<string | null>(null);
 
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [chosenColor, setChosenColor] = useState<"red" | "yellow" | "green" | "blue" | null>(null);
@@ -370,6 +372,29 @@ export default function GamePage() {
     return () => window.clearTimeout(timer);
   }, [actionToast]);
 
+  useEffect(() => {
+    if (!room?.lastAction) return;
+    if (room.lastAction.type !== "card_played") return;
+    const key = lastActionKey(room.lastAction);
+    if (!key) return;
+    if (seenUnoKey === null) {
+      setSeenUnoKey(key);
+      return;
+    }
+    if (key === seenUnoKey) return;
+
+    setSeenUnoKey(key);
+    if ((room.handCounts[room.lastAction.by] ?? -1) === 1) {
+      setUnoToast(`${playerName(room, room.lastAction.by)} 骄傲地喊出了 UNO！`);
+    }
+  }, [room, seenUnoKey]);
+
+  useEffect(() => {
+    if (!unoToast) return;
+    const timer = window.setTimeout(() => setUnoToast(""), 2000);
+    return () => window.clearTimeout(timer);
+  }, [unoToast]);
+
   return (
     <div className={styles.page}>
       {actionToast ? (
@@ -377,11 +402,18 @@ export default function GamePage() {
           <div className={styles.actionToast}>{actionToast}</div>
         </div>
       ) : null}
+      {unoToast ? (
+        <div className={styles.unoToastViewport}>
+          <UiCard type="title" className={styles.unoToastCard}>
+            {unoToast}
+          </UiCard>
+        </div>
+      ) : null}
       <main className={styles.shell}>
         <section className={styles.topPanel}>
           <div className={styles.titleRow}>
             <div>
-              <h1 className={styles.title}>白夜大小姐的UNO</h1>
+              <h1 className={styles.title}>UNO Time</h1>
               <div className={styles.roomMeta}>
                 房间号
                 <span className={styles.roomCode}>{roomId}</span>

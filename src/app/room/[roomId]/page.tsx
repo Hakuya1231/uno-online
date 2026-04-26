@@ -143,7 +143,7 @@ export default function RoomPage() {
           <div className={styles.header}>
             <div className={styles.titleRow}>
               <div>
-                <h1 className={styles.title}>白夜大小姐的UNO</h1>
+                <h1 className={styles.title}>UNO Time</h1>
                 <div className={styles.roomId}>
                   房间号
                   <span className={styles.roomCode}>{roomId}</span>

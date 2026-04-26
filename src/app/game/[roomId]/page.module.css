@@ -122,6 +122,18 @@
   width: min(420px, calc(100vw - 24px));
   z-index: 1000;
   pointer-events: none;
+  display: grid;
+  gap: 8px;
+}
+
+.unoToastViewport {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  z-index: 1001;
+  pointer-events: none;
 }
 
 .playInfoWrap {
@@ -188,6 +200,17 @@
   line-height: 1.5;
   animation: fadeInOut 1s ease;
   border: 2px solid rgba(225, 112, 136, 0.45);
+}
+
+.unoToastCard {
+  background: #f8a6b2 !important;
+  color: #ffffff !important;
+  box-shadow: 0 12px 24px rgba(248, 166, 178, 0.35) !important;
+  border: 2px solid rgba(225, 112, 136, 0.45);
+  cursor: default !important;
+  animation: fadeInHoldOut 2s ease;
+  max-width: min(420px, calc(100vw - 40px));
+  text-align: center;
 }
 
 .phasePanel {
@@ -586,6 +609,22 @@
   }
   15%,
   85% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+
+@keyframes fadeInHoldOut {
+  0% {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  10%,
+  88% {
     opacity: 1;
     transform: translateY(0);
   }
