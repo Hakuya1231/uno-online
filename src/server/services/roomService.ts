@@ -1,7 +1,7 @@
+import { randomUUID } from "node:crypto";
 import type { DealerMode, Player, PublicRoomDoc } from "@/shared";
+import { createDealerDrawPile, reduce, type EngineAction } from "../engine";
 import type { PrivateGameData, RoomRepo } from "../repos/types";
-import { createDealerDrawPile } from "../engine";
-import { reduce, type EngineAction } from "../engine";
 
 export type RoomIdGenerator = () => string;
 
@@ -60,6 +60,27 @@ function makeInitialRoomDoc(input: CreateRoomInput): PublicRoomDoc {
 /** 创建房间时的私密文档初始化值。 */
 function makeInitialPrivateData(): PrivateGameData {
   return { drawPile: [], dealerDrawPile: null };
+}
+
+function requireWaitingRoom(room: PublicRoomDoc) {
+  if (room.status !== "waiting") throw new Error("当前状态不允许调整房间");
+}
+
+function requireHost(room: PublicRoomDoc, playerId: string, action: "添加AI" | "移除AI" | "开始游戏") {
+  if (room.hostId !== playerId) throw new Error(`只有房主可以${action}`);
+}
+
+function nextAiName(players: readonly Player[]): string {
+  const used = new Set(
+    players
+      .map((p) => /^\[AI\] (\d+)$/.exec(p.name)?.[1])
+      .filter((v): v is string => Boolean(v))
+      .map((v) => Number(v)),
+  );
+
+  let i = 1;
+  while (used.has(i)) i += 1;
+  return `[AI] ${i}`;
 }
 
 export class RoomService {
@@ -144,6 +165,79 @@ export class RoomService {
   }
 
   /**
+   * 添加 AI。
+   *
+   * 约束：
+   * - 仅房主可操作
+   * - 仅 waiting 状态允许调整
+   * - 总人数最多 8
+   * - AI 永远追加到 players 末尾
+   */
+  async addAi(input: { roomId: string; playerId: string }): Promise<void> {
+    await this.repo.runTransaction(async (tx) => {
+      const room = await this.repo.getRoom(tx, input.roomId);
+      if (!room) throw new Error("房间不存在");
+
+      requireWaitingRoom(room);
+      requireHost(room, input.playerId, "添加AI");
+
+      if (room.players.length >= 8) throw new Error("房间已满");
+
+      const aiId = `ai_${randomUUID()}`;
+      const aiName = nextAiName(room.players);
+      const aiPlayer: Player = { id: aiId, name: aiName, isAI: true };
+
+      const nextRoom: PublicRoomDoc = {
+        ...room,
+        players: [...room.players, aiPlayer],
+        handCounts: { ...room.handCounts, [aiId]: 0 },
+        scores: { ...room.scores, [aiId]: 0 },
+        roomVersion: room.roomVersion + 1,
+      };
+
+      await this.repo.updateRoom(tx, input.roomId, nextRoom);
+    });
+  }
+
+  /**
+   * 移除 AI。
+   *
+   * 约束：
+   * - 仅房主可操作
+   * - 仅 waiting 状态允许调整
+   * - 只能移除 AI 玩家
+   */
+  async removeAi(input: { roomId: string; playerId: string; targetPlayerId: string }): Promise<void> {
+    await this.repo.runTransaction(async (tx) => {
+      const room = await this.repo.getRoom(tx, input.roomId);
+      if (!room) throw new Error("房间不存在");
+
+      requireWaitingRoom(room);
+      requireHost(room, input.playerId, "移除AI");
+
+      const target = room.players.find((p) => p.id === input.targetPlayerId);
+      if (!target) throw new Error("目标玩家不存在");
+      if (!target.isAI) throw new Error("只能移除AI玩家");
+
+      const nextHandCounts = { ...room.handCounts };
+      delete nextHandCounts[input.targetPlayerId];
+
+      const nextScores = { ...room.scores };
+      delete nextScores[input.targetPlayerId];
+
+      const nextRoom: PublicRoomDoc = {
+        ...room,
+        players: room.players.filter((p) => p.id !== input.targetPlayerId),
+        handCounts: nextHandCounts,
+        scores: nextScores,
+        roomVersion: room.roomVersion + 1,
+      };
+
+      await this.repo.updateRoom(tx, input.roomId, nextRoom);
+    });
+  }
+
+  /**
    * 开始游戏（房间级）。
    *
    * - dealerMode=host：直接进入 dealing，庄家=房主
@@ -152,15 +246,14 @@ export class RoomService {
    * 说明：
    * - 108 张 drawPile 的初始化在发牌（deal）时由 GameService 负责
    */
-  async startRoom(input: {
-    roomId: string;
-    playerId: string;
-  }): Promise<void> {
+  async startRoom(input: { roomId: string; playerId: string }): Promise<void> {
     await this.repo.runTransaction(async (tx) => {
       const room = await this.repo.getRoom(tx, input.roomId);
       if (!room) throw new Error("房间不存在");
       const privateData = await this.repo.getPrivateGameData(tx, input.roomId);
       if (!privateData) throw new Error("私密数据不存在（异常状态）");
+
+      requireHost(room, input.playerId, "开始游戏");
 
       if (room.players.length < 2) {
         throw new Error("至少需要 2 名玩家才能开始游戏");
@@ -191,4 +284,3 @@ export class RoomService {
     });
   }
 }
-
