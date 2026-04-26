@@ -531,6 +531,37 @@ export default function GamePage() {
         ) : null}
 
         {room && (room.status === "playing" || room.status === "paused") ? (
+          <section className={styles.summaryPanel}>
+            <div className={styles.summaryLayout}>
+              <div className={`${styles.handCard} ${topDiscard(room) ? handCardClass(topDiscard(room)!) : styles.handWild} ${styles.discardPreview}`}>
+                <div className={styles.handCardInner}>
+                  <span className={styles.handCardText}>{topDiscard(room) ? cardText(topDiscard(room)!) : "（无）"}</span>
+                </div>
+              </div>
+
+              <div className={styles.summaryInfoGrid}>
+                <div className={styles.metaCard}>
+                  <span className={styles.metaLabel}>当前颜色</span>
+                  <span className={styles.metaValue}>{room.chosenColor ? colorZh(room.chosenColor) : "无"}</span>
+                </div>
+                <div className={styles.metaCard}>
+                  <span className={styles.metaLabel}>叠加摸牌</span>
+                  <span className={styles.metaValue}>{pendingDrawZh(room.pendingDraw)}</span>
+                </div>
+                <div className={styles.metaCard}>
+                  <span className={styles.metaLabel}>摸牌堆</span>
+                  <span className={styles.metaValue}>{room.drawPileCount} 张</span>
+                </div>
+                <div className={styles.metaCard}>
+                  <span className={styles.metaLabel}>方向</span>
+                  <span className={styles.metaValue}>{directionZh(room.direction)}</span>
+                </div>
+              </div>
+            </div>
+          </section>
+        ) : null}
+
+        {room && (room.status === "playing" || room.status === "paused") ? (
           <section className={styles.handPanel}>
               {msg ? <div className={styles.message}>{msg}</div> : null}
 

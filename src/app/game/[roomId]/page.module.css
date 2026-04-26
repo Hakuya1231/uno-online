@@ -180,6 +180,28 @@
   align-content: start;
 }
 
+.summaryPanel {
+  border: 2px solid rgba(115, 96, 66, 0.16);
+  border-radius: 30px;
+  background: rgba(255, 252, 246, 0.88);
+  box-shadow: 0 20px 50px rgba(82, 71, 43, 0.09);
+  backdrop-filter: blur(10px);
+  padding: 18px 16px 16px;
+}
+
+.summaryLayout {
+  display: grid;
+  grid-template-columns: 92px minmax(0, 1fr);
+  gap: 10px;
+  align-items: stretch;
+}
+
+.summaryInfoGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
 .phaseHeader {
   display: grid;
   gap: 2px;
@@ -329,6 +351,10 @@
   text-align: center;
   transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
   box-shadow: 0 8px 18px rgba(82, 71, 43, 0.12);
+}
+
+.discardPreview {
+  min-height: 100%;
 }
 
 .handCard:hover:not(:disabled) {
@@ -594,6 +620,7 @@
 
   .topPanel,
   .phasePanel,
+  .summaryPanel,
   .handPanel,
   .settlementPanel {
     border-radius: 24px;
@@ -617,5 +644,9 @@
 
   .winnerName {
     font-size: 24px;
+  }
+
+  .summaryLayout {
+    grid-template-columns: 84px minmax(0, 1fr);
   }
 }
