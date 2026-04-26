@@ -434,7 +434,13 @@ export default function GamePage() {
                   key={p.id}
                   className={`${styles.playerCountItem} ${currentPlayer?.id === p.id ? styles.currentPlayerItem : ""}`}
                 >
-                  <span className={styles.playerCountName}>{p.name}</span>
+                  <div className={styles.playerCountMain}>
+                    <span className={styles.playerCountName}>{p.name}</span>
+                    <div className={styles.playerCountBadges}>
+                      {p.id === session.userId ? <span className={styles.playerCountBadge}>我</span> : null}
+                      {p.isAI ? <span className={styles.playerCountBadge}>AI</span> : null}
+                    </div>
+                  </div>
                   <span className={styles.playerCountValue}>{room.handCounts[p.id] ?? 0} 张</span>
                 </li>
               ))}

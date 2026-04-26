@@ -268,6 +268,13 @@
   background: rgba(244, 239, 223, 0.9);
 }
 
+.playerCountMain {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
 .currentPlayerItem {
   background: linear-gradient(180deg, #fff0a6 0%, #ffd36b 100%);
   box-shadow: 0 8px 18px rgba(255, 186, 59, 0.28);
@@ -278,6 +285,23 @@
   line-height: 1.4;
   font-weight: 700;
   color: #594123;
+  word-break: break-word;
+}
+
+.playerCountBadges {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.playerCountBadge {
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: #fff5cf;
+  color: #7b6742;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
 }
 
 .playerCountValue {
