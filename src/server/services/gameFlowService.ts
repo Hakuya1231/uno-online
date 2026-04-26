@@ -14,7 +14,7 @@ export class GameFlowService {
     private readonly repo: RoomRepo,
     roomIdGen: RoomIdGenerator = () => "__unused__",
     private readonly rng: RandomSource = Math.random,
-    private readonly aiDelayRange: AiDelayRange | null = { minMs: 300, maxMs: 800 },
+    private readonly aiDelayRange: AiDelayRange | null = { minMs: 800, maxMs: 1200 },
   ) {
     this.roomService = new RoomService(repo, roomIdGen);
     this.gameService = new GameService(repo);
