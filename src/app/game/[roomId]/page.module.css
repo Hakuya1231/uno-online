@@ -55,6 +55,13 @@
   color: #6d776b;
 }
 
+.roomSubMeta {
+  margin-top: 2px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #6d776b;
+}
+
 .roomCode {
   display: inline-block;
   margin-left: 6px;
@@ -81,11 +88,6 @@
   background: #f4efdf;
   color: #674f33;
   min-width: 0;
-}
-
-.currentTurnCard {
-  background: linear-gradient(180deg, #fff0a6 0%, #ffd36b 100%);
-  box-shadow: 0 8px 18px rgba(255, 186, 59, 0.35);
 }
 
 .metaLabel {
@@ -134,51 +136,6 @@
   padding: 20px;
   z-index: 1001;
   pointer-events: none;
-}
-
-.playInfoWrap {
-  display: grid;
-  gap: 10px;
-  align-items: start;
-}
-
-.playInfoGrid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 8px;
-}
-
-.playInfoGridCompact {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
-  align-items: start;
-}
-
-.discardCard {
-  display: grid;
-  gap: 6px;
-  padding: 10px 10px;
-  border-radius: 16px;
-  background: linear-gradient(180deg, #ffd86d 0%, #ffb648 100%);
-  color: #55340f;
-  box-shadow: 0 10px 20px rgba(255, 176, 48, 0.28);
-  border: 1px solid rgba(179, 105, 17, 0.18);
-}
-
-.discardTitle {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  opacity: 0.7;
-}
-
-.discardValue {
-  font-size: 15px;
-  line-height: 1.15;
-  font-weight: 800;
-  color: #483316;
-  word-break: break-word;
 }
 
 .subtle {
@@ -293,46 +250,6 @@
   align-content: start;
 }
 
-.sectionHeader {
-  display: grid;
-  gap: 2px;
-}
-
-.sectionTitle {
-  font-size: 22px;
-  line-height: 1.1;
-  color: #3d4e35;
-}
-
-.sectionSubtle {
-  font-size: 13px;
-  line-height: 1.5;
-  color: #6d776b;
-}
-
-.collapseAnswer {
-  display: grid;
-  gap: 8px;
-  padding: 4px 0 0;
-}
-
-.playersCollapse {
-  margin: 0 !important;
-}
-
-.playersCollapse :global([class*="animal-faqCard"]) {
-  margin-bottom: 0 !important;
-}
-
-.playersCollapse :global([class*="animal-questionHeader"]) {
-  padding-top: 14px !important;
-  padding-bottom: 14px !important;
-}
-
-.playersCollapse :global([class*="animal-answerContent"]) {
-  padding-top: 0 !important;
-}
-
 .playerCountList {
   list-style: none;
   display: grid;
@@ -349,6 +266,11 @@
   padding: 10px 12px;
   border-radius: 16px;
   background: rgba(244, 239, 223, 0.9);
+}
+
+.currentPlayerItem {
+  background: linear-gradient(180deg, #fff0a6 0%, #ffd36b 100%);
+  box-shadow: 0 8px 18px rgba(255, 186, 59, 0.28);
 }
 
 .playerCountName {

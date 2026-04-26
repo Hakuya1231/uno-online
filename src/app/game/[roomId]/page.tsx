@@ -6,7 +6,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { doc, onSnapshot } from "firebase/firestore";
 import type { Card, PublicRoomDoc } from "@/shared";
-import { Button, Card as UiCard, Collapse, Divider, Footer } from "animal-island-ui";
+import { Button, Card as UiCard, Divider, Footer } from "animal-island-ui";
 
 import { postJson } from "@/client/api";
 import { getClientFirestore } from "@/client/firestore";
@@ -421,45 +421,24 @@ export default function GamePage() {
                 我的昵称
                 <span className={styles.roomCode}>{session.nickname || "未设置"}</span>
               </div>
+              {room && (room.status === "playing" || room.status === "paused") ? (
+                <div className={styles.roomSubMeta}>第 {room.currentRound} 局</div>
+              ) : null}
             </div>
           </div>
 
           {room && (room.status === "playing" || room.status === "paused") ? (
-            <div className={styles.playInfoWrap}>
-              <div className={styles.playInfoGrid}>
-                <div className={styles.metaCard}>
-                  <span className={styles.metaLabel}>当前牌局</span>
-                  <span className={styles.metaValue}>第 {room.currentRound} 局</span>
-                </div>
-                <div className={`${styles.metaCard} ${isMyTurn ? styles.currentTurnCard : ""}`}>
-                  <span className={styles.metaLabel}>轮到</span>
-                  <span className={styles.metaValue}>{currentPlayer ? currentPlayer.name : "（无）"}</span>
-                </div>
-                <div className={styles.metaCard}>
-                  <span className={styles.metaLabel}>摸牌堆</span>
-                  <span className={styles.metaValue}>{room.drawPileCount} 张</span>
-                </div>
-                <div className={styles.metaCard}>
-                  <span className={styles.metaLabel}>方向</span>
-                  <span className={styles.metaValue}>{directionZh(room.direction)}</span>
-                </div>
-              </div>
-
-              <div className={styles.playInfoGridCompact}>
-                <div className={styles.metaCard}>
-                  <span className={styles.metaLabel}>当前颜色</span>
-                  <span className={styles.metaValue}>{room.chosenColor ? colorZh(room.chosenColor) : "无"}</span>
-                </div>
-                <div className={styles.metaCard}>
-                  <span className={styles.metaLabel}>叠加摸牌</span>
-                  <span className={styles.metaValue}>{pendingDrawZh(room.pendingDraw)}</span>
-                </div>
-                <div className={styles.discardCard}>
-                  <span className={styles.discardTitle}>弃牌堆顶</span>
-                  <span className={styles.discardValue}>{topDiscard(room) ? cardText(topDiscard(room)!) : "（无）"}</span>
-                </div>
-              </div>
-            </div>
+            <ul className={styles.playerCountList}>
+              {room.players.map((p) => (
+                <li
+                  key={p.id}
+                  className={`${styles.playerCountItem} ${currentPlayer?.id === p.id ? styles.currentPlayerItem : ""}`}
+                >
+                  <span className={styles.playerCountName}>{p.name}</span>
+                  <span className={styles.playerCountValue}>{room.handCounts[p.id] ?? 0} 张</span>
+                </li>
+              ))}
+            </ul>
           ) : room && room.status === "finished" ? null : (
             <div className={styles.metaGrid}>
               <div className={styles.metaCard}>
@@ -480,27 +459,6 @@ export default function GamePage() {
               ) : null}
             </div>
           )}
-
-          {room && (room.status === "playing" || room.status === "paused") ? (
-            <Collapse
-              className={styles.playersCollapse}
-              style={{ margin: 0 }}
-              question="查看玩家列表"
-              defaultExpanded={false}
-              answer={
-                <div className={styles.collapseAnswer}>
-                  <ul className={styles.playerCountList}>
-                    {room.players.map((p) => (
-                      <li key={p.id} className={styles.playerCountItem}>
-                        <span className={styles.playerCountName}>{p.name}</span>
-                        <span className={styles.playerCountValue}>{room.handCounts[p.id] ?? 0} 张</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              }
-            />
-          ) : null}
 
           {roomError ? <div className={styles.message}>房间订阅错误：{roomError}</div> : null}
           {handError ? <div className={styles.subtle}>手牌订阅错误：{handError}</div> : null}
