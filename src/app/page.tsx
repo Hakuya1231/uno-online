@@ -9,7 +9,7 @@ import styles from "./page.module.css";
 
 import type { DealerMode } from "@/shared";
 import { loadLocalSession } from "@/client/localSession";
-import { randomChuunibyouNickname } from "@/client/nickname";
+import { randomNickname } from "@/client/nickname";
 import { postJson } from "@/client/api";
 import { saveNickname } from "@/client/localSession";
 import { useLocalSession } from "@/client/useLocalSession";
@@ -30,7 +30,7 @@ export default function HomePage() {
   const [msg, setMsg] = useState("");
 
   const onRandomNickname = useCallback(() => {
-    const next = randomChuunibyouNickname({ maxLen: 12 });
+    const next = randomNickname({ maxLen: 12 });
     setNickname(next);
     saveNickname(next);
   }, []);

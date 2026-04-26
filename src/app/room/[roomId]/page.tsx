@@ -10,7 +10,7 @@ import { postJson } from "@/client/api";
 import { useLocalSession } from "@/client/useLocalSession";
 import { getClientFirestore } from "@/client/firestore";
 import type { PublicRoomDoc } from "@/shared";
-import { randomChuunibyouNickname } from "@/client/nickname";
+import { randomNickname } from "@/client/nickname";
 import { saveNickname } from "@/client/localSession";
 import { DEALER_MODE_ZH, ROOM_STATUS_ZH } from "@/client/uiText";
 import styles from "./page.module.css";
@@ -108,7 +108,7 @@ export default function RoomPage() {
   }, [nickname, roomId]);
 
   const onRandomNickname = useCallback(() => {
-    const next = randomChuunibyouNickname({ maxLen: 12 });
+    const next = randomNickname({ maxLen: 12 });
     setNickname(next);
     saveNickname(next);
   }, []);
@@ -290,4 +290,3 @@ export default function RoomPage() {
     </div>
   );
 }
-

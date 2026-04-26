@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import type { DealerMode, Player, PublicRoomDoc } from "@/shared";
+import { randomNickname } from "../../shared/nickname";
 import { createDealerDrawPile, reduce, type EngineAction } from "../engine";
 import type { PrivateGameData, RoomRepo } from "../repos/types";
 
@@ -71,16 +72,16 @@ function requireHost(room: PublicRoomDoc, playerId: string, action: "添加AI" |
 }
 
 function nextAiName(players: readonly Player[]): string {
-  const used = new Set(
-    players
-      .map((p) => /^\[AI\] (\d+)$/.exec(p.name)?.[1])
-      .filter((v): v is string => Boolean(v))
-      .map((v) => Number(v)),
-  );
+  const used = new Set(players.map((p) => p.name.trim().toLocaleLowerCase()));
 
-  let i = 1;
-  while (used.has(i)) i += 1;
-  return `[AI] ${i}`;
+  for (let i = 0; i < 24; i++) {
+    const candidate = randomNickname({ maxLen: 12 });
+    if (!used.has(candidate.trim().toLocaleLowerCase())) {
+      return candidate;
+    }
+  }
+
+  return `小AI${players.filter((p) => p.isAI).length + 1}`;
 }
 
 export class RoomService {

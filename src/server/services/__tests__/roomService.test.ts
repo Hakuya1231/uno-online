@@ -3,7 +3,7 @@ import { InMemoryRoomRepo } from "../../repos/inMemoryRoomRepo";
 import { RoomService } from "../roomService";
 
 describe("RoomService", () => {
-  it("createRoom: 初始化为 waiting，players=[host]", async () => {
+  it("createRoom: initializes a waiting room with the host", async () => {
     const repo = new InMemoryRoomRepo();
     const svc = new RoomService(repo, () => "r1");
 
@@ -28,7 +28,7 @@ describe("RoomService", () => {
     expect(room?.dealerId).toBe("p1");
   });
 
-  it("joinRoom: waiting 状态允许加入，且会初始化 handCounts/scores", async () => {
+  it("joinRoom: waiting allows joins and initializes handCounts/scores", async () => {
     const repo = new InMemoryRoomRepo();
     const svc = new RoomService(repo, () => "r1");
     const { roomId } = await svc.createRoom({ hostId: "p1", hostName: "A", dealerMode: "host" });
@@ -41,7 +41,7 @@ describe("RoomService", () => {
     expect(room?.scores.p2).toBe(0);
   });
 
-  it("joinRoom: 真人加入会插入到第一个 AI 之前", async () => {
+  it("joinRoom: human players are inserted before existing AI players", async () => {
     const repo = new InMemoryRoomRepo();
     const svc = new RoomService(repo, () => "r1");
     const { roomId } = await svc.createRoom({ hostId: "p1", hostName: "A", dealerMode: "host" });
@@ -53,8 +53,8 @@ describe("RoomService", () => {
         ...room,
         players: [
           ...room.players,
-          { id: "ai1", name: "[AI] 1", isAI: true },
-          { id: "ai2", name: "[AI] 2", isAI: true },
+          { id: "ai1", name: "桃桃兔兔", isAI: true },
+          { id: "ai2", name: "星星团子", isAI: true },
         ],
         handCounts: { ...room.handCounts, ai1: 0, ai2: 0 },
         scores: { ...room.scores, ai1: 0, ai2: 0 },
@@ -66,7 +66,7 @@ describe("RoomService", () => {
     expect(room?.players.map((p) => p.id)).toEqual(["p1", "p2", "ai1", "ai2"]);
   });
 
-  it("joinRoom: 已有相同昵称时不允许加入", async () => {
+  it("joinRoom: duplicate names are rejected", async () => {
     const repo = new InMemoryRoomRepo();
     const svc = new RoomService(repo, () => "r1");
     const { roomId } = await svc.createRoom({ hostId: "p1", hostName: "白夜", dealerMode: "host" });
@@ -74,7 +74,7 @@ describe("RoomService", () => {
     await expect(svc.joinRoom({ roomId, playerId: "p2", name: "白夜" })).rejects.toThrow(/昵称重复/);
   });
 
-  it("joinRoom: 非 waiting 状态不允许加入", async () => {
+  it("joinRoom: non-waiting rooms reject joins", async () => {
     const repo = new InMemoryRoomRepo();
     const svc = new RoomService(repo, () => "r1");
     const { roomId } = await svc.createRoom({ hostId: "p1", hostName: "A", dealerMode: "host" });
@@ -83,7 +83,7 @@ describe("RoomService", () => {
     await expect(svc.joinRoom({ roomId, playerId: "p2", name: "B" })).rejects.toThrow(/不允许加入/);
   });
 
-  it("addAi: 房主可在 waiting 阶段添加 AI，并初始化 handCounts/scores", async () => {
+  it("addAi: host can add an AI in waiting state", async () => {
     const repo = new InMemoryRoomRepo();
     const svc = new RoomService(repo, () => "r1");
     const { roomId } = await svc.createRoom({ hostId: "p1", hostName: "A", dealerMode: "host" });
@@ -91,14 +91,16 @@ describe("RoomService", () => {
     await svc.addAi({ roomId, playerId: "p1" });
 
     const room = await repo.runTransaction((tx) => repo.getRoom(tx, roomId));
+    const ai = room?.players[1];
     expect(room?.players).toHaveLength(2);
-    expect(room?.players[1]?.isAI).toBe(true);
-    expect(room?.players[1]?.name).toBe("[AI] 1");
-    expect(room?.handCounts[room!.players[1]!.id]).toBe(0);
-    expect(room?.scores[room!.players[1]!.id]).toBe(0);
+    expect(ai?.isAI).toBe(true);
+    expect(ai?.name).toBeTruthy();
+    expect(ai?.name.length).toBeLessThanOrEqual(12);
+    expect(room?.handCounts[ai!.id]).toBe(0);
+    expect(room?.scores[ai!.id]).toBe(0);
   });
 
-  it("removeAi: 房主可移除指定 AI，并清理 handCounts/scores", async () => {
+  it("removeAi: host can remove a specific AI and clear derived maps", async () => {
     const repo = new InMemoryRoomRepo();
     const svc = new RoomService(repo, () => "r1");
     const { roomId } = await svc.createRoom({ hostId: "p1", hostName: "A", dealerMode: "host" });
@@ -116,7 +118,7 @@ describe("RoomService", () => {
     expect(room?.scores[aiId!]).toBeUndefined();
   });
 
-  it("addAi/removeAi: 非房主不允许操作，且不能移除真人", async () => {
+  it("addAi/removeAi: only the host can manage AI, and humans cannot be removed", async () => {
     const repo = new InMemoryRoomRepo();
     const svc = new RoomService(repo, () => "r1");
     const { roomId } = await svc.createRoom({ hostId: "p1", hostName: "A", dealerMode: "host" });
@@ -136,7 +138,7 @@ describe("RoomService", () => {
     );
   });
 
-  it("startRoom(draw_compare): waiting -> choosing_dealer，且写入 dealerDrawPile", async () => {
+  it("startRoom(draw_compare): waiting -> choosing_dealer and initializes dealerDrawPile", async () => {
     const repo = new InMemoryRoomRepo();
     const svc = new RoomService(repo, () => "r1");
     const { roomId } = await svc.createRoom({
