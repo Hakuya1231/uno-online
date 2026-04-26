@@ -132,6 +132,14 @@
   word-break: break-all;
 }
 
+.playerSide {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
 .badges {
   display: flex;
   flex-wrap: wrap;
@@ -165,6 +173,10 @@
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 8px;
   align-items: center;
+}
+
+.playerActions {
+  margin-top: 8px;
 }
 
 .actionGroup {

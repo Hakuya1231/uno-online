@@ -6,13 +6,13 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { doc, onSnapshot } from "firebase/firestore";
 import { Button, Divider, Footer, Input } from "animal-island-ui";
-import { postJson } from "@/client/api";
-import { useLocalSession } from "@/client/useLocalSession";
+import { deleteJson, postJson } from "@/client/api";
 import { getClientFirestore } from "@/client/firestore";
-import type { PublicRoomDoc } from "@/shared";
-import { randomNickname } from "@/client/nickname";
 import { saveNickname } from "@/client/localSession";
+import { randomNickname } from "@/client/nickname";
 import { DEALER_MODE_ZH, ROOM_STATUS_ZH } from "@/client/uiText";
+import { useLocalSession } from "@/client/useLocalSession";
+import type { PublicRoomDoc } from "@/shared";
 import styles from "./page.module.css";
 
 function getRoomIdFromParams(params: Record<string, string | string[]>) {
@@ -31,16 +31,17 @@ export default function RoomPage() {
   const [nickname, setNickname] = useState<string>(session.nickname || "");
 
   const [room, setRoom] = useState<PublicRoomDoc | null>(null);
-  const [roomError, setRoomError] = useState<string>("");
+  const [roomError, setRoomError] = useState("");
 
+  // 允许从其他页面修改昵称后，同步到这里。
   useEffect(() => {
-    // 允许从其他页面修改昵称后同步到这里
     setNickname(session.nickname || "");
   }, [session.nickname]);
 
   useEffect(() => {
     if (!roomId) return;
     setRoomError("");
+
     const db = getClientFirestore();
     const ref = doc(db, "rooms", roomId);
     const unsub = onSnapshot(
@@ -58,6 +59,7 @@ export default function RoomPage() {
         setRoomError(err instanceof Error ? err.message : "订阅失败");
       },
     );
+
     return () => unsub();
   }, [roomId]);
 
@@ -75,7 +77,7 @@ export default function RoomPage() {
       room.players.length >= 2,
   );
 
-  // 房主开始游戏后，所有已加入玩家都应自动进入游戏页
+  // 房主开始游戏后，所有已加入玩家都应自动跳转到游戏页。
   useEffect(() => {
     if (!room) return;
     if (!roomId) return;
@@ -118,7 +120,7 @@ export default function RoomPage() {
       await navigator.clipboard.writeText(`${window.location.origin}/room/${roomId}`);
       setMsg("已复制链接");
     } catch {
-      setMsg("复制失败（浏览器不支持或无权限）");
+      setMsg("复制失败（浏览器不支持或没有权限）");
     }
   }, [roomId]);
 
@@ -127,7 +129,6 @@ export default function RoomPage() {
     setMsg("");
     try {
       await postJson("/api/room/start", { roomId });
-
       router.push(`/game/${roomId}`);
     } catch (e) {
       setMsg(`开始失败：${e instanceof Error ? e.message : "unknown error"}`);
@@ -135,6 +136,37 @@ export default function RoomPage() {
       setBusy(false);
     }
   }, [roomId, router]);
+
+  const onAddAi = useCallback(async () => {
+    if (!roomId) return;
+
+    setBusy(true);
+    setMsg("");
+    try {
+      await postJson("/api/room/ai", { roomId });
+    } catch (e) {
+      setMsg(`添加AI失败：${e instanceof Error ? e.message : "unknown error"}`);
+    } finally {
+      setBusy(false);
+    }
+  }, [roomId]);
+
+  const onRemoveAi = useCallback(
+    async (playerId: string) => {
+      if (!roomId) return;
+
+      setBusy(true);
+      setMsg("");
+      try {
+        await deleteJson("/api/room/ai", { roomId, playerId });
+      } catch (e) {
+        setMsg(`移除AI失败：${e instanceof Error ? e.message : "unknown error"}`);
+      } finally {
+        setBusy(false);
+      }
+    },
+    [roomId],
+  );
 
   return (
     <div className={styles.page}>
@@ -205,21 +237,50 @@ export default function RoomPage() {
                       <div className={styles.playerMain}>
                         <span className={styles.playerName}>{p.name}</span>
                       </div>
-                      <div className={styles.badges}>
-                        {p.id === session.userId ? <span className={styles.badge}>我</span> : null}
-                        {p.id === room.hostId ? <span className={styles.badge}>房主</span> : null}
-                        {p.isAI ? <span className={styles.badge}>AI</span> : null}
+                      <div className={styles.playerSide}>
+                        <div className={styles.badges}>
+                          {p.id === session.userId ? <span className={styles.badge}>我</span> : null}
+                          {p.id === room.hostId ? <span className={styles.badge}>房主</span> : null}
+                          {p.isAI ? <span className={styles.badge}>AI</span> : null}
+                        </div>
+                        {isHost && room.status === "waiting" && p.isAI ? (
+                          <Button
+                            type="default"
+                            size="small"
+                            danger
+                            disabled={busy}
+                            onClick={() => void onRemoveAi(p.id)}
+                          >
+                            移除
+                          </Button>
+                        ) : null}
                       </div>
                     </li>
                   ))}
                 </ul>
+
+                {isHost && room.status === "waiting" ? (
+                  <div className={styles.playerActions}>
+                    <Button
+                      type="default"
+                      block
+                      size="large"
+                      onClick={onAddAi}
+                      disabled={busy || room.players.length >= 8}
+                    >
+                      添加 AI
+                    </Button>
+                  </div>
+                ) : null}
               </section>
 
               <Divider type="wave-yellow" />
 
               {room.status !== "waiting" ? (
                 <div className={styles.note}>
-                  {hasJoined ? "房间已进入下一阶段，正在为你跳转到对局页面…" : `当前房间状态：${ROOM_STATUS_ZH[room.status]}`}
+                  {hasJoined
+                    ? "房间已进入下一阶段，正在为你跳转到对局页面…"
+                    : `当前房间状态：${ROOM_STATUS_ZH[room.status]}`}
                 </div>
               ) : !isHost ? (
                 !hasJoined ? (
@@ -233,7 +294,7 @@ export default function RoomPage() {
                             setNickname(e.target.value);
                             saveNickname(e.target.value.trim());
                           }}
-                          placeholder="请输入"
+                          placeholder="请输入昵称"
                           allowClear
                           onClear={() => {
                             setNickname("");
@@ -259,7 +320,7 @@ export default function RoomPage() {
                     </Button>
                   </div>
                 ) : (
-                  <div className={styles.note}>你已加入房间，等待房主开始游戏…</div>
+                  <div className={styles.note}>你已加入房间，等待房主开始游戏。</div>
                 )
               ) : (
                 <div className={styles.actionGroup}>

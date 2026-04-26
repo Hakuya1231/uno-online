@@ -48,3 +48,27 @@ export async function postJson<TResp>(
   return json;
 }
 
+/**
+ * 统一的 JSON DELETE：
+ * - 自动带 Authorization（由 authedFetch 从 localStorage 读取 token）
+ * - 自动设置 content-type
+ * - 自动 JSON.stringify(body)
+ * - 失败时抛出可直接展示给用户的 Error(message)
+ */
+export async function deleteJson(
+  url: string,
+  body: unknown,
+  init?: Omit<RequestInit, "method" | "headers" | "body"> & { headers?: HeadersInit },
+): Promise<void> {
+  const resp = await authedFetch(url, {
+    method: "DELETE",
+    headers: { "content-type": "application/json", ...(init?.headers ?? {}) },
+    body: JSON.stringify(body),
+    ...init,
+  });
+
+  const text = await resp.text();
+  if (!resp.ok) {
+    throw new Error(getErrorMessage(resp.status, text));
+  }
+}
