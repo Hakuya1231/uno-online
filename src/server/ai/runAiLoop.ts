@@ -3,6 +3,11 @@ import type { RoomRepo } from "../repos/types";
 import { aiDecide } from "./decide";
 import type { RandomSource } from "./types";
 
+export type AiDelayRange = {
+  minMs: number;
+  maxMs: number;
+};
+
 type AiActor = {
   drawForDealer(input: { roomId: string; playerId: string }): Promise<void>;
   deal(input: { roomId: string; playerId: string }): Promise<void>;
@@ -39,12 +44,24 @@ function dealerPlayer(room: PublicRoomDoc) {
   return room.players.find((p) => p.id === room.dealerId) ?? null;
 }
 
+function pickDelayMs(range: AiDelayRange, rng: RandomSource): number {
+  const minMs = Math.max(0, Math.floor(range.minMs));
+  const maxMs = Math.max(minMs, Math.floor(range.maxMs));
+  return Math.floor(minMs + rng() * (maxMs - minMs + 1));
+}
+
+async function sleep(ms: number): Promise<void> {
+  if (ms <= 0) return;
+  await new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 export async function runAiUntilHuman(params: {
   roomId: string;
   repo: RoomRepo;
   actor: AiActor;
   rng?: RandomSource;
   maxSteps?: number;
+  delayRange?: AiDelayRange | null;
 }): Promise<void> {
   const rng = params.rng ?? Math.random;
   const maxSteps = params.maxSteps ?? 128;
@@ -61,6 +78,7 @@ export async function runAiUntilHuman(params: {
     if (room.status === "choosing_dealer") {
       const pendingAi = firstPendingAiForDealer(room);
       if (!pendingAi) return;
+      if (params.delayRange) await sleep(pickDelayMs(params.delayRange, rng));
       await params.actor.drawForDealer({ roomId: params.roomId, playerId: pendingAi.id });
       continue;
     }
@@ -68,6 +86,7 @@ export async function runAiUntilHuman(params: {
     if (room.status === "dealing") {
       const dealer = dealerPlayer(room);
       if (!dealer?.isAI) return;
+      if (params.delayRange) await sleep(pickDelayMs(params.delayRange, rng));
       await params.actor.deal({ roomId: params.roomId, playerId: dealer.id });
       continue;
     }
@@ -79,6 +98,7 @@ export async function runAiUntilHuman(params: {
     if (!currentHand) throw new Error("缺少 AI 手牌，无法决策");
 
     const decision = aiDecide({ room, hand: currentHand, playerId: current.id, rng });
+    if (params.delayRange) await sleep(pickDelayMs(params.delayRange, rng));
 
     switch (decision.type) {
       case "draw_for_dealer":

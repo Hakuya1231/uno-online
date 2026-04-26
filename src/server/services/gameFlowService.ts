@@ -1,5 +1,6 @@
 import type { Card } from "@/shared";
 import { runAiUntilHuman, type RandomSource } from "../ai";
+import type { AiDelayRange } from "../ai/runAiLoop";
 import type { RoomIdGenerator } from "./roomService";
 import { RoomService } from "./roomService";
 import { GameService } from "./gameService";
@@ -13,6 +14,7 @@ export class GameFlowService {
     private readonly repo: RoomRepo,
     roomIdGen: RoomIdGenerator = () => "__unused__",
     private readonly rng: RandomSource = Math.random,
+    private readonly aiDelayRange: AiDelayRange | null = { minMs: 300, maxMs: 800 },
   ) {
     this.roomService = new RoomService(repo, roomIdGen);
     this.gameService = new GameService(repo);
@@ -24,6 +26,7 @@ export class GameFlowService {
       repo: this.repo,
       actor: this.gameService,
       rng: this.rng,
+      delayRange: this.aiDelayRange,
     });
   }
 

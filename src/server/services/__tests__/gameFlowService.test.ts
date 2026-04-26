@@ -26,7 +26,7 @@ describe("GameFlowService", () => {
   it("startRoom(draw_compare): 会自动让 AI 摸选庄牌", async () => {
     const repo = new InMemoryRoomRepo();
     const roomSvc = new RoomService(repo, () => "ROOM1");
-    const flowSvc = new GameFlowService(repo, () => "ROOM1", () => 0);
+    const flowSvc = new GameFlowService(repo, () => "ROOM1", () => 0, null);
 
     const { roomId } = await roomSvc.createRoom({
       hostId: "p1",
@@ -54,7 +54,7 @@ describe("GameFlowService", () => {
   it("runAiUntilHuman: AI 庄家会自动发牌", async () => {
     const repo = new InMemoryRoomRepo();
     const roomSvc = new RoomService(repo, () => "ROOM2");
-    const flowSvc = new GameFlowService(repo, () => "ROOM2", () => 0);
+    const flowSvc = new GameFlowService(repo, () => "ROOM2", () => 0, null);
 
     const { roomId } = await roomSvc.createRoom({
       hostId: "p1",
@@ -86,7 +86,7 @@ describe("GameFlowService", () => {
   it("playCard: 人类动作后会连续执行 AI，直到轮到下一个真人", async () => {
     const repo = new InMemoryRoomRepo();
     const roomSvc = new RoomService(repo, () => "ROOM3");
-    const flowSvc = new GameFlowService(repo, () => "ROOM3", () => 0);
+    const flowSvc = new GameFlowService(repo, () => "ROOM3", () => 0, null);
 
     const { roomId } = await roomSvc.createRoom({
       hostId: "p1",
